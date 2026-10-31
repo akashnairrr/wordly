@@ -1,16 +1,31 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 import { useEffect } from "react";
 import { getLanguage, POS_LABELS } from "@/lib/languages";
 import type { Word } from "@/lib/types";
+import { C, num } from "@/theme";
 import { ConjugationTable } from "./ConjugationTable";
 import { ExampleList } from "./ExampleList";
 import { FormsTable } from "./FormsTable";
 import { SpeakButton } from "./SpeakButton";
 import { useSpeech } from "./SpeechProvider";
-import styles from "./WordCard.module.css";
+import { ToneChip } from "./ToneChip";
 
 const GENDER_LABEL = { m: "masculine", f: "feminine", mf: "masculine or feminine" } as const;
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Box component="section" sx={{ borderTop: `1px solid ${C.line}`, mt: 2.75, pt: 2.25 }}>
+      <Typography variant="h3" sx={{ mb: 1.25 }}>
+        {title}
+      </Typography>
+      {children}
+    </Box>
+  );
+}
 
 export function WordCard({
   word,
@@ -34,56 +49,59 @@ export function WordCard({
   }, [autoSpeak, available, say, word.lemma, word.audio]);
 
   return (
-    <article className={styles.card}>
-      <header className={styles.head}>
-        <div>
-          <div className={styles.meta}>
-            {badge && <span className="chip chip-studied">{badge}</span>}
+    <Paper component="article" variant="outlined" sx={{ p: 3 }}>
+      <Box component="header" sx={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "12px 16px" }}>
+        <Box sx={{ flex: "1 1 200px", minWidth: 0 }}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0.75, fontSize: 14, color: C.muted, mb: 0.75 }}>
+            {badge && <ToneChip tone="studied" label={badge} />}
             <span>{POS_LABELS[word.pos]}</span>
             {word.gender && <span>· {GENDER_LABEL[word.gender]}</span>}
-            <span className="num">· #{word.rank}</span>
-          </div>
-          <h2 className={styles.lemma} lang={lang}>
-            {article && <span className={styles.article}>{article} </span>}
+            <Box component="span" sx={num}>
+              · #{word.rank}
+            </Box>
+          </Box>
+          <Typography variant="h2" lang={lang} sx={{ fontSize: "clamp(40px, 9vw, 60px)", fontWeight: 800, overflowWrap: "break-word" }}>
+            {article && (
+              <Box component="span" sx={{ fontWeight: 400, color: C.muted }}>
+                {article}{" "}
+              </Box>
+            )}
             {word.lemma}
-          </h2>
-          {word.ipa && <div className={styles.ipa}>{word.ipa}</div>}
-        </div>
+          </Typography>
+          {word.ipa && <Box sx={{ mt: 0.75, color: C.muted }}>{word.ipa}</Box>}
+        </Box>
         <SpeakButton text={article ? `${article} ${word.lemma}` : word.lemma} audio={word.audio} size="lg" />
-      </header>
+      </Box>
 
-      <section className={styles.section}>
-        <h3 className={styles.title}>Meaning</h3>
-        <ol className={styles.glosses}>
+      <Section title="Meaning">
+        <Box component="ol" sx={{ m: 0, pl: 2.75, "& li + li": { mt: 0.5 } }}>
           {word.glosses.map((g) => (
             <li key={g}>{g}</li>
           ))}
-        </ol>
-      </section>
+        </Box>
+      </Section>
 
       {word.forms && (
-        <section className={styles.section}>
-          <h3 className={styles.title}>Forms</h3>
+        <Section title="Forms">
           <FormsTable word={word} lang={lang} />
-        </section>
+        </Section>
       )}
 
       {(word.conjugation || word.nonFinite) && (
-        <section className={styles.section}>
-          <h3 className={styles.title}>Conjugation</h3>
+        <Section title="Conjugation">
           <ConjugationTable word={word} lang={lang} />
-        </section>
+        </Section>
       )}
 
-      <section className={styles.section}>
-        <h3 className={styles.title}>In real sentences</h3>
+      <Section title="In real sentences">
         <ExampleList word={word} lang={lang} />
-      </section>
+      </Section>
       {available === false && (
-        <p className="small">
-          Words without a native recording use your browser&apos;s {language.name} voice, and none is installed. Add one in your system&apos;s speech settings.
-        </p>
+        <Typography variant="body2" sx={{ mt: 2 }}>
+          Words without a native recording use your browser&apos;s {language.name} voice, and none is installed. Add one in your system&apos;s speech
+          settings.
+        </Typography>
       )}
-    </article>
+    </Paper>
   );
 }

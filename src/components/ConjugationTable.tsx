@@ -1,10 +1,12 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import { useState } from "react";
 import { getLanguage } from "@/lib/languages";
 import type { Person, Word } from "@/lib/types";
-import { SpeakButton } from "./SpeakButton";
-import styles from "./WordCard.module.css";
+import { FormRows } from "./FormsTable";
 
 const PERSONS: Person[] = ["1s", "2s", "3s", "1p", "2p", "3p"];
 
@@ -23,58 +25,37 @@ export function ConjugationTable({ word, lang }: { word: Word; lang: string }) {
   return (
     <div>
       {tenses.length > 0 && (
-        <div className="segments" role="group" aria-label="Tense" style={{ marginBottom: 6 }}>
+        <ToggleButtonGroup
+          exclusive
+          value={active}
+          onChange={(_, i: number | null) => i !== null && setActive(i)}
+          aria-label="Tense"
+          sx={{ mb: 0.75 }}
+        >
           {tenses.map((t, i) => (
-            <button key={t.label} type="button" className="segment" aria-pressed={i === active} onClick={() => setActive(i)}>
+            <ToggleButton key={t.label} value={i}>
               {t.label}
-            </button>
+            </ToggleButton>
           ))}
-        </div>
+        </ToggleButtonGroup>
       )}
       {row && (
-        <table className={styles.table}>
-          <tbody>
-            {PERSONS.filter((p) => row[p]).map((p) => {
-              const form = row[p]!;
-              const recording = word.formAudio?.[form];
-              // A recording is of the bare form; synthetic speech says it with its pronoun for context.
-              // Imperatives are commands, so no pronoun.
-              const spoken = recording || current.mood === "imperative" ? form : `${language.personLabels[p].split(" / ")[0]} ${form}`;
-              return (
-                <tr key={p}>
-                  <th scope="row">{language.personLabels[p]}</th>
-                  <td>
-                    <span className={styles.formCell}>
-                      <span className={styles.form} lang={lang}>
-                        {form}
-                      </span>
-                      <SpeakButton text={spoken} audio={recording} size="sm" />
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <FormRows
+          lang={lang}
+          rows={PERSONS.filter((p) => row[p]).map((p) => {
+            const form = row[p]!;
+            const recording = word.formAudio?.[form];
+            // A recording is of the bare form; synthetic speech says it with its pronoun for context.
+            // Imperatives are commands, so no pronoun.
+            const spoken = recording || current.mood === "imperative" ? form : `${language.personLabels[p].split(" / ")[0]} ${form}`;
+            return { label: language.personLabels[p], form, spoken, audio: recording };
+          })}
+        />
       )}
       {nonFinite.length > 0 && (
-        <table className={styles.table} style={{ marginTop: 12 }}>
-          <tbody>
-            {nonFinite.map(([label, form]) => (
-              <tr key={label}>
-                <th scope="row">{label}</th>
-                <td>
-                  <span className={styles.formCell}>
-                    <span className={styles.form} lang={lang}>
-                      {form}
-                    </span>
-                    <SpeakButton text={form} audio={word.formAudio?.[form]} size="sm" />
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Box sx={{ mt: 1.5 }}>
+          <FormRows lang={lang} rows={nonFinite.map(([label, form]) => ({ label, form, audio: word.formAudio?.[form] }))} />
+        </Box>
       )}
     </div>
   );

@@ -8,9 +8,18 @@
     "start": "next start",
     "lint": "eslint",
     "data": "tsx scripts/build-data/index.ts",
-    "test": "tsx --test \"scripts/**/*.test.ts\" \"src/**/*.test.ts\""
+    "test": "tsx --test \"scripts/**/*.test.ts\" \"src/**/*.test.ts\"",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test"
   },
   "dependencies": {
+    "@emotion/cache": "11.14.0",
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@mui/material": "9.5.0",
+    "@mui/material-nextjs": "9.5.0",
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0"
@@ -21,6 +30,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "eslint-config-prettier": "10.1.8",
+    "prettier": "3.9.10",
     "tsx": "^4.23.15",
     "typescript": "^5"
   },

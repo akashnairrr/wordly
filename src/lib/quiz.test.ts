@@ -50,7 +50,10 @@ test("quiz: two questions per word, answer always among options", () => {
         assert.equal(new Set(q.options).size, q.options.length, `${q.kind}: duplicate options`);
       }
     }
-    assert.ok(qs.some((q) => q.kind.startsWith("listen")), "speech on → at least one listening question");
+    assert.ok(
+      qs.some((q) => q.kind.startsWith("listen")),
+      "speech on → at least one listening question",
+    );
   }
 });
 
@@ -84,15 +87,26 @@ test("grading: typed answers tolerate case, punctuation and missing accents", ()
 });
 
 test("session: difficulty bands and next unlearned words by rank", () => {
-  assert.deepEqual([5, 8, 9, 12, 13, 15].map(difficulty), ["easy", "easy", "moderate", "moderate", "hard", "hard"]);
+  assert.deepEqual([5, 8, 9, 12, 13, 15].map(difficulty), ["Easy", "Easy", "Moderate", "Moderate", "Hard", "Hard"]);
   const p = { ...emptyProgress(), learned: { tener: { learnedAt: "", correct: 1, wrong: 0 } } };
-  assert.deepEqual(pickNewWords(pool, p, 5).map((w) => w.id), ["casa", "bueno", "ser", "ir", "hacer"]);
+  assert.deepEqual(
+    pickNewWords(pool, p, 5).map((w) => w.id),
+    ["casa", "bueno", "ser", "ir", "hacer"],
+  );
 });
 
 test("progress: recordSession counts answers and tracks the streak", () => {
   const day1 = new Date(2026, 9, 30, 12);
   const day2 = new Date(2026, 9, 31, 12);
-  let p = recordSession(emptyProgress(), [{ wordId: "casa", correct: true }, { wordId: "casa", correct: false }], "lesson", day1);
+  let p = recordSession(
+    emptyProgress(),
+    [
+      { wordId: "casa", correct: true },
+      { wordId: "casa", correct: false },
+    ],
+    "lesson",
+    day1,
+  );
   assert.deepEqual([p.learned.casa.correct, p.learned.casa.wrong, p.streak], [1, 1, 1]);
   p = recordSession(p, [{ wordId: "ser", correct: true }], "lesson", day2);
   assert.equal(p.streak, 2);
@@ -128,11 +142,20 @@ test("review: weakest and least recently seen first; lessons mix in 1 old word p
       bueno: { learnedAt: at(1), reviewedAt: at(9), correct: 0, wrong: 2 },
     },
   };
-  assert.deepEqual(reviewQueue(pool, p).map((w) => w.id), ["bueno", "casa", "tener"]);
-  assert.deepEqual(reviewQueue(pool, p, true).map((w) => w.id), ["bueno"]);
+  assert.deepEqual(
+    reviewQueue(pool, p).map((w) => w.id),
+    ["bueno", "casa", "tener"],
+  );
+  assert.deepEqual(
+    reviewQueue(pool, p, true).map((w) => w.id),
+    ["bueno"],
+  );
   assert.equal(wordStatus("bueno", p), "practice");
   const plan = planLesson(pool, p, 10);
-  assert.deepEqual(plan.review.map((w) => w.id), ["bueno", "casa"]);
+  assert.deepEqual(
+    plan.review.map((w) => w.id),
+    ["bueno", "casa"],
+  );
   assert.ok(!plan.fresh.some((w) => p.learned[w.id as keyof typeof p.learned]));
 });
 

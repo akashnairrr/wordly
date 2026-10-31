@@ -1,30 +1,42 @@
+import Box from "@mui/material/Box";
 import type { ReactNode } from "react";
 import type { Example, Word } from "@/lib/types";
 import { allForms } from "@/lib/words";
+import { C } from "@/theme";
 import { SpeakButton } from "./SpeakButton";
-import styles from "./WordCard.module.css";
 
-const COLORS = 5;
+// Colour pairs (word background / meaning text), each 5:1 or better on Merino.
+const COLORS = [
+  { bg: "#d6e6f0", fg: "#16587b" },
+  { bg: "#f6dcc7", fg: "#8a4317" },
+  { bg: "#dce9d3", fg: "#3d6a2a" },
+  { bg: "#e5ddf2", fg: "#5b3e8f" },
+  { bg: "#f1e3b5", fg: "#6f5208" },
+];
+
+const pill = { fontSize: 19, fontWeight: 500, lineHeight: 1.3, px: "6px", py: "1px", borderRadius: "6px", whiteSpace: "nowrap" } as const;
 
 /** One word or phrase with its meaning (and dictionary form, if inflected) underneath, in a matching colour. */
 function Unit({ es, en, lemma, color, lang }: { es: string; en?: string; lemma?: string; color?: number; lang: string }) {
+  const c = color === undefined ? undefined : COLORS[color % COLORS.length];
   return (
-    <span className={`${styles.unit} ${color === undefined ? "" : styles[`c${color % COLORS}`]}`}>
-      <span className={styles.es} lang={lang}>
+    // As wide as the word, or the longest word of its meaning: meanings wrap instead of widening the gap to the next word.
+    <Box component="span" sx={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", width: "min-content", maxWidth: "100%" }}>
+      <Box component="span" lang={lang} sx={{ ...pill, bgcolor: c?.bg }}>
         {es}
-      </span>
+      </Box>
       {en && (
-        <span className={styles.en}>
+        <Box component="span" sx={{ fontSize: 13, lineHeight: 1.25, pt: "3px", px: "6px", color: c?.fg }}>
           {lemma && (
-            <span className={styles.dictForm} lang={lang}>
+            <Box component="span" lang={lang} sx={{ display: "block", fontStyle: "italic" }}>
               {lemma}
-            </span>
+            </Box>
           )}
           {/* Keep "to come" and "the /" together when the meaning wraps under a short word. */}
-          {en.replace(/^to /, "to\u00a0").replaceAll(" / ", "\u00a0/ ")}
-        </span>
+          {en.replace(/^to /, "to ").replaceAll(" / ", " / ")}
+        </Box>
       )}
-    </span>
+    </Box>
   );
 }
 
@@ -40,7 +52,12 @@ function GlossedSentence({ ex, forms, lang }: { ex: Example; forms: Set<string>;
   for (let k = 0; k < parts.length; k++) {
     if (k % 2 === 0) {
       const punct = parts[k].trim();
-      if (punct) items.push(<span key={k} className={styles.punct}>{punct}</span>);
+      if (punct)
+        items.push(
+          <Box component="span" key={k} sx={{ ...pill, px: 0 }}>
+            {punct}
+          </Box>,
+        );
       continue;
     }
     const token = (k - 1) / 2;
@@ -53,39 +70,39 @@ function GlossedSentence({ ex, forms, lang }: { ex: Example; forms: Set<string>;
     }
     const word = parts[k];
     if (forms.has(word.toLowerCase())) {
+      // The word being taught: the one solid pill among the pastel ones.
       items.push(
-        <span key={k} className={styles.unit}>
-          <mark lang={lang}>{word}</mark>
-        </span>,
+        <Box component="mark" key={k} lang={lang} sx={{ ...pill, bgcolor: C.venice, color: C.merino, fontWeight: 700 }}>
+          {word}
+        </Box>,
       );
       continue;
     }
     const gloss = ex.words?.[token];
-    items.push(
-      gloss ? (
-        <Unit key={k} es={word} en={gloss.g} lemma={gloss.l} color={color++} lang={lang} />
-      ) : (
-        <Unit key={k} es={word} lang={lang} />
-      ),
-    );
+    items.push(gloss ? <Unit key={k} es={word} en={gloss.g} lemma={gloss.l} color={color++} lang={lang} /> : <Unit key={k} es={word} lang={lang} />);
   }
-  return <div className={styles.sentence}>{items}</div>;
+  return <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "8px 4px" }}>{items}</Box>;
 }
 
 export function ExampleList({ word, lang }: { word: Word; lang: string }) {
-  if (!word.examples.length) return <p className="small">No example sentences found for this word yet.</p>;
+  if (!word.examples.length)
+    return (
+      <Box component="p" sx={{ fontSize: 14, color: C.muted }}>
+        No example sentences found for this word yet.
+      </Box>
+    );
   const forms = new Set(allForms(word).map((f) => f.toLowerCase()));
   return (
-    <ul className={styles.examples}>
+    <Box component="ul" sx={{ listStyle: "none", p: 0, m: 0 }}>
       {word.examples.map((ex) => (
-        <li key={ex.text} className={styles.example}>
-          <div className={styles.exampleHead}>
+        <Box component="li" key={ex.text} sx={{ py: 1.5, borderBottom: `1px solid ${C.line}`, "&:last-child": { borderBottom: 0 } }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1.5 }}>
             <GlossedSentence ex={ex} forms={forms} lang={lang} />
             <SpeakButton text={ex.text} audio={ex.audio} size="sm" />
-          </div>
-          <div className={styles.translation}>{ex.en}</div>
-        </li>
+          </Box>
+          <Box sx={{ mt: 1, color: C.muted, fontSize: 15 }}>{ex.en}</Box>
+        </Box>
       ))}
-    </ul>
+    </Box>
   );
 }

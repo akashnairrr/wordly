@@ -16,7 +16,13 @@ pnpm install
 pnpm dev          # http://localhost:3000
 pnpm test         # pipeline + quiz/session/progress logic
 pnpm build        # static export to out/
+pnpm format       # Prettier
+pnpm check        # lint + format check + typecheck + tests (what CI runs)
 ```
+
+## Contributing
+
+`.github/workflows/ci.yml` runs `pnpm check` on every push to any branch. `main` is protected: changes land through a pull request with one approval, a green `check`, signed commits, and **squash and merge** only, so history stays linear (one commit per PR, titled after the PR). The repo owner can bypass.
 
 ## Project layout
 
@@ -29,7 +35,8 @@ scripts/build-data/   offline data pipeline (pnpm data)
   sentences.ts        Tatoeba example sentence matching
 public/data/<lang>/   generated: index.json + words/<id>.json (committed)
 src/lib/              types, language registry, quiz/session/progress logic, speech, data loading
-src/components/       WordCard, ConjugationTable, FormsTable, ExampleList, Quiz, SessionSizePicker, …
+src/components/       WordCard, ConjugationTable, FormsTable, ExampleList, Quiz, SessionSizePicker, … (MUI)
+src/theme.ts          MUI theme: Merino / Rock Blue / Venice Blue palette, Fraunces + Jost, flat components
 src/app/[lang]/       Today (home), session, words library + word pages, progress/settings
 ```
 
@@ -38,8 +45,8 @@ src/app/[lang]/       Today (home), session, words library + word pages, progres
 `pnpm data --lang es` downloads into `data-raw/` (gitignored, about 110 MB) and regenerates `public/data/es/`:
 
 1. **Frequency**: [FrequencyWords](https://github.com/hermitdave/FrequencyWords) (OpenSubtitles), so the ranking reflects spoken language.
-2. **Dictionary**: [kaikki.org](https://kaikki.org/) Wiktionary extract: meanings, IPA, gender, forms, full conjugation tables. Each frequent spelling is mapped to its lemma (*tengo* → *tener*). When several entries share a spelling, the one with the most real meanings wins (*de* = preposition, not the letter).
-3. **Sentences**: [Tatoeba](https://tatoeba.org/) pairs via [manythings.org](https://www.manythings.org/anki/), chosen to sound like everyday conversation: three to six words, built from the most common spoken words, translated close to word for word (checked against the word meanings), no spelled-out subject pronouns speakers would drop (*Tengo hambre*, not *Yo tengo hambre*), few film-drama exclamations, no names or numbers, a mix of questions and statements, native recording preferred. Spread across the word's most-spoken forms; matches through a spelling another word owns (*comer* ← *como*) come last. Every other word in each sentence gets a short meaning (and its dictionary form if inflected), and common phrases (*por favor*, *de acuerdo*) are glossed as one unit, from a third Wiktionary pass; `SHORT_GLOSSES` in `overrides.ts` covers the commonest little words.
+2. **Dictionary**: [kaikki.org](https://kaikki.org/) Wiktionary extract: meanings, IPA, gender, forms, full conjugation tables. Each frequent spelling is mapped to its lemma (_tengo_ → _tener_). When several entries share a spelling, the one with the most real meanings wins (_de_ = preposition, not the letter).
+3. **Sentences**: [Tatoeba](https://tatoeba.org/) pairs via [manythings.org](https://www.manythings.org/anki/), chosen to sound like everyday conversation: three to six words, built from the most common spoken words, translated close to word for word (checked against the word meanings), no spelled-out subject pronouns speakers would drop (_Tengo hambre_, not _Yo tengo hambre_), few film-drama exclamations, no names or numbers, a mix of questions and statements, native recording preferred. Spread across the word's most-spoken forms; matches through a spelling another word owns (_comer_ ← _como_) come last. Every other word in each sentence gets a short meaning (and its dictionary form if inflected), and common phrases (_por favor_, _de acuerdo_) are glossed as one unit, from a third Wiktionary pass; `SHORT_GLOSSES` in `overrides.ts` covers the commonest little words.
 4. **Recordings**: [Lingua Libre](https://lingualibre.org/) native-speaker words (listed once from Wikimedia Commons and cached in `data-raw/<lang>/lingualibre.json`), Wiktionary audio, and Tatoeba's sentence recordings. Audio is linked, not copied, so `public/data` stays small.
 
 Spot-check the top words after a run; fix misresolved ones in `scripts/build-data/overrides.ts` (e.g. `son: { lemma: "ser" }`).

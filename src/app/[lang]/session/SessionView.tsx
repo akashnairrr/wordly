@@ -1,10 +1,21 @@
 "use client";
 
-import Link from "next/link";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import Skeleton from "@mui/material/Skeleton";
+import Typography from "@mui/material/Typography";
+import NextLink from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { EmptyState } from "@/components/EmptyState";
+import { ButtonLink } from "@/components/links";
 import { Quiz, type QuizResult } from "@/components/Quiz";
 import { useSpeech } from "@/components/SpeechProvider";
+import { ToneChip } from "@/components/ToneChip";
 import { WordCard } from "@/components/WordCard";
 import { fetchWord, fetchWords } from "@/lib/data";
 import { getLanguage } from "@/lib/languages";
@@ -14,12 +25,31 @@ import { pickNewWords, planLesson, reviewQueue } from "@/lib/session";
 import type { Word } from "@/lib/types";
 import { useIndex } from "@/lib/useIndex";
 import { useProgress } from "@/lib/useProgress";
-import styles from "./session.module.css";
+import { C, displayFont, num, RADIUS, Z } from "@/theme";
 
 interface Item {
   word: Word;
   /** Already studied: shown again for revision. */
   review: boolean;
+}
+
+/** Page title row: title on the left, optional detail on the right. */
+function Top({ title, sub, right }: { title: string; sub?: string; right?: string }) {
+  return (
+    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 1.5, mt: 3.5, mb: 1.5 }}>
+      <div>
+        <Typography variant="h1" sx={{ fontSize: 34 }}>
+          {title}
+        </Typography>
+        {sub && <Typography variant="body2">{sub}</Typography>}
+      </div>
+      {right && (
+        <Typography variant="body2" component="span" sx={num}>
+          {right}
+        </Typography>
+      )}
+    </Box>
+  );
 }
 
 type Phase = { name: "learn"; card: number } | { name: "quiz"; questions: QuizQuestion[] } | { name: "results"; results: QuizResult[] };
@@ -73,18 +103,23 @@ function Session({ lang, mode, onlyPractice, onRestart }: { lang: string; mode: 
     );
   }, [progress, index, lang, mode, onlyPractice]);
 
-  if (error || indexError) return <p className="empty">Could not load words: {error ?? indexError}</p>;
-  if (!items || !progress || !index) return <div className="skeleton" style={{ marginTop: 24, minHeight: 420 }} />;
+  if (error || indexError) return <EmptyState text={`Could not load words: ${error ?? indexError}`} />;
+  if (!items || !progress || !index) return <Skeleton sx={{ mt: 3, minHeight: 420 }} />;
 
   if (!items.length)
     return (
-      <div className="empty">
-        <h1 style={{ fontSize: 32, marginBottom: 12 }}>{mode === "review" ? "Nothing to review yet" : "You've covered every word"}</h1>
-        <p>{mode === "review" ? "Finish a lesson first; studied words show up here." : "Revisit what you've learned instead."}</p>
-        <Link href={mode === "review" ? `/${lang}/session/` : `/${lang}/session/?mode=review`} className="btn">
+      <EmptyState
+        title={
+          <Typography variant="h1" sx={{ fontSize: 32, mb: 1.5 }}>
+            {mode === "review" ? "Nothing to review yet" : "You've covered every word"}
+          </Typography>
+        }
+        text={mode === "review" ? "Finish a lesson first; studied words show up here." : "Revisit what you've learned instead."}
+      >
+        <ButtonLink href={mode === "review" ? `/${lang}/session/` : `/${lang}/session/?mode=review`}>
           {mode === "review" ? "Start a lesson" : "Review studied words"}
-        </Link>
-      </div>
+        </ButtonLink>
+      </EmptyState>
     );
 
   const title = mode === "review" ? (onlyPractice ? "Practice weak words" : "Review") : "Lesson";
@@ -93,7 +128,8 @@ function Session({ lang, mode, onlyPractice, onRestart }: { lang: string; mode: 
     const card = Math.min(phase.card, items.length - 1);
     const item = items[card];
     const last = card === items.length - 1;
-    const counts = mode === "lesson" ? `${items.filter((i) => !i.review).length} new · ${items.filter((i) => i.review).length} review` : `${items.length} words`;
+    const counts =
+      mode === "lesson" ? `${items.filter((i) => !i.review).length} new · ${items.filter((i) => i.review).length} review` : `${items.length} words`;
 
     async function skip() {
       const skipped = item.word;
@@ -118,44 +154,55 @@ function Session({ lang, mode, onlyPractice, onRestart }: { lang: string; mode: 
 
     return (
       <>
-        <div className={styles.top}>
-          <div>
-            <h1 className={styles.title}>{title}</h1>
-            <span className="small">{counts}</span>
-          </div>
-          <span className="small num">
-            {card + 1} / {items.length}
-          </span>
-        </div>
-        <div className="meter" style={{ marginBottom: 18 }}>
-          <i style={{ transform: `scaleX(${(card + 1) / items.length})` }} />
-        </div>
+        <Top title={title} sub={counts} right={`${card + 1} / ${items.length}`} />
+        <LinearProgress value={((card + 1) / items.length) * 100} aria-label="Lesson progress" sx={{ mb: 2.25 }} />
         {notice && (
-          <p className={styles.notice} role="status">
+          <Alert role="status" sx={{ mb: 1.75 }}>
             {notice}
-          </p>
+          </Alert>
         )}
         <WordCard key={item.word.id} word={item.word} lang={lang} autoSpeak badge={item.review ? "Review" : undefined} />
-        <div className="sticky-actions">
-          <button type="button" className="btn btn-outline" disabled={card === 0} onClick={() => setPhase({ name: "learn", card: card - 1 })} aria-label="Previous word">
+        {/* Stays at the bottom of the viewport on long cards. */}
+        <Box
+          sx={{
+            position: "sticky",
+            bottom: 0,
+            zIndex: Z.sticky,
+            display: "flex",
+            gap: 1.25,
+            pt: 1.5,
+            pb: "calc(12px + env(safe-area-inset-bottom))",
+            mt: 2,
+            bgcolor: C.merino,
+            borderTop: `1px solid ${C.line}`,
+          }}
+        >
+          <Button variant="outlined" disabled={card === 0} onClick={() => setPhase({ name: "learn", card: card - 1 })} aria-label="Previous word">
             ←
-          </button>
-          <button type="button" className="btn btn-quiet" onClick={skip}>
+          </Button>
+          <Button variant="text" onClick={skip}>
             Skip word
-          </button>
-          <button
-            type="button"
-            className="btn"
-            style={{ flex: 1 }}
+          </Button>
+          <Button
+            sx={{ flex: 1 }}
             onClick={() => {
               setNotice(null);
-              if (last) setPhase({ name: "quiz", questions: buildQuiz(items.map((i) => i.word), index, language, { speech: available === true }) });
+              if (last)
+                setPhase({
+                  name: "quiz",
+                  questions: buildQuiz(
+                    items.map((i) => i.word),
+                    index,
+                    language,
+                    { speech: available === true },
+                  ),
+                });
               else setPhase({ name: "learn", card: card + 1 });
             }}
           >
             {last ? "Start quiz" : "Next word"}
-          </button>
-        </div>
+          </Button>
+        </Box>
       </>
     );
   }
@@ -163,14 +210,18 @@ function Session({ lang, mode, onlyPractice, onRestart }: { lang: string; mode: 
   if (phase.name === "quiz") {
     return (
       <>
-        <div className={styles.top}>
-          <h1 className={styles.title}>Quiz</h1>
-        </div>
+        <Top title="Quiz" />
         <Quiz
           questions={phase.questions}
           lang={lang}
           onDone={(results) => {
-            update((p) => recordSession(p, results.map((r) => ({ wordId: r.question.wordId, correct: r.grade !== "wrong" })), mode));
+            update((p) =>
+              recordSession(
+                p,
+                results.map((r) => ({ wordId: r.question.wordId, correct: r.grade !== "wrong" })),
+                mode,
+              ),
+            );
             setPhase({ name: "results", results });
           }}
         />
@@ -183,48 +234,62 @@ function Session({ lang, mode, onlyPractice, onRestart }: { lang: string; mode: 
   const missed = items.filter((i) => results.some((r) => r.question.wordId === i.word.id && r.grade === "wrong"));
   return (
     <>
-      <section className={`block block-accent ${styles.score}`}>
-        <span className="label" style={{ color: "inherit" }}>
+      <Box
+        component="section"
+        sx={{ mt: 3.5, p: 3, textAlign: "center", bgcolor: C.tintSoft, boxShadow: `inset 0 0 0 2px ${C.rock}`, borderRadius: `${RADIUS}px` }}
+      >
+        <Box component="span" sx={{ fontSize: 14, fontWeight: 600 }}>
           {title} complete
-        </span>
-        <div className={`display num ${styles.big}`}>
+        </Box>
+        <Box sx={{ ...displayFont, ...num, fontSize: 72, lineHeight: 1, my: 1 }}>
           {score}/{results.length}
-        </div>
-        <p style={{ margin: 0 }}>{missed.length === 0 ? "Every answer right." : `${missed.length} word${missed.length > 1 ? "s" : ""} to practise again.`}</p>
-      </section>
-      <ul className={styles.results}>
+        </Box>
+        <Box component="p" sx={{ m: 0 }}>
+          {missed.length === 0 ? "Every answer right." : `${missed.length} word${missed.length > 1 ? "s" : ""} to practise again.`}
+        </Box>
+      </Box>
+      <List disablePadding sx={{ mt: 2.5, borderTop: `1px solid ${C.line}` }}>
         {items.map(({ word, review }) => {
           const wrong = results.filter((r) => r.question.wordId === word.id && r.grade === "wrong").length;
           return (
             <li key={word.id}>
-              <Link href={`/${lang}/words/${word.id}/`} className={styles.result}>
+              <ListItemButton
+                component={NextLink}
+                href={`/${lang}/words/${word.id}/`}
+                sx={{
+                  justifyContent: "space-between",
+                  gap: 1.5,
+                  py: 1.75,
+                  px: 0.25,
+                  borderBottom: `1px solid ${C.line}`,
+                  "&:hover b": { color: C.venice },
+                }}
+              >
                 <span>
-                  <b lang={lang}>{word.lemma}</b> <span className="muted">{word.glosses[0]}</span>
+                  <b lang={lang}>{word.lemma}</b>{" "}
+                  <Box component="span" sx={{ color: C.muted }}>
+                    {word.glosses[0]}
+                  </Box>
                 </span>
-                <span className="row">
-                  {review && <span className="chip">review</span>}
-                  <span className={wrong ? "chip chip-practice" : "chip chip-studied"}>{wrong ? `${wrong} missed` : "✓"}</span>
-                </span>
-              </Link>
+                <Box component="span" sx={{ display: "flex", gap: 1.25 }}>
+                  {review && <ToneChip label="review" />}
+                  <ToneChip tone={wrong ? "practice" : "studied"} label={wrong ? `${wrong} missed` : "✓"} />
+                </Box>
+              </ListItemButton>
             </li>
           );
         })}
-      </ul>
-      <div className="row" style={{ marginTop: 20 }}>
+      </List>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.25, mt: 2.5 }}>
         {missed.length > 0 && (
-          <Link href={`/${lang}/session/?mode=review&filter=practice`} className="btn btn-outline" onClick={onRestart}>
+          <ButtonLink href={`/${lang}/session/?mode=review&filter=practice`} variant="outlined" onClick={onRestart}>
             Practise missed words
-          </Link>
+          </ButtonLink>
         )}
-        <button
-          type="button"
-          className="btn"
-          style={{ flex: 1 }}
-          onClick={onRestart}
-        >
+        <Button sx={{ flex: 1 }} onClick={onRestart}>
           {mode === "review" ? "Review more" : "Next lesson"}
-        </button>
-      </div>
+        </Button>
+      </Box>
     </>
   );
 }

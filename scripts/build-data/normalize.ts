@@ -48,9 +48,7 @@ const POS_PRIORITY: Pos[] = ["verb", "pron", "det", "prep", "conj", "adv", "adj"
 
 /** Picks the entry a learner most likely means when several share a spelling: most meanings wins. */
 export function bestEntry(entries: RawEntry[]): RawEntry | undefined {
-  const scored = entries
-    .map((e) => ({ e, pos: mapPos(e.pos), n: usableGlosses(e).length }))
-    .filter((x) => x.pos && x.n > 0);
+  const scored = entries.map((e) => ({ e, pos: mapPos(e.pos), n: usableGlosses(e).length })).filter((x) => x.pos && x.n > 0);
   scored.sort((a, b) => b.n - a.n || POS_PRIORITY.indexOf(a.pos!) - POS_PRIORITY.indexOf(b.pos!));
   return scored[0]?.e;
 }
@@ -101,7 +99,13 @@ function conjugation(e: RawEntry): { conjugation?: Conjugation; nonFinite?: Word
     const t = new Set(f.tags);
     if (t.has("gerund")) nonFinite.gerund ??= f.form;
     if (t.has("participle") && t.has("past") && (t.has("masculine") || t.size === 2)) nonFinite.participle ??= f.form;
-    const mood: Mood | undefined = t.has("indicative") ? "indicative" : t.has("subjunctive") ? "subjunctive" : t.has("imperative") ? "imperative" : undefined;
+    const mood: Mood | undefined = t.has("indicative")
+      ? "indicative"
+      : t.has("subjunctive")
+        ? "subjunctive"
+        : t.has("imperative")
+          ? "imperative"
+          : undefined;
     const p = person(t);
     if (!mood || !p) continue;
     const tense: Tense | undefined = mood === "imperative" ? (t.has("negative") ? "negative" : "affirmative") : TENSES.find((x) => t.has(x));

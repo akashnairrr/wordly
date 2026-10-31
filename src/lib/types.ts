@@ -1,27 +1,9 @@
 // Shared by the data pipeline (scripts/build-data) and the app.
 
-export type Pos =
-  | "noun"
-  | "verb"
-  | "adj"
-  | "adv"
-  | "pron"
-  | "prep"
-  | "conj"
-  | "det"
-  | "intj"
-  | "num"
-  | "other";
+export type Pos = "noun" | "verb" | "adj" | "adv" | "pron" | "prep" | "conj" | "det" | "intj" | "num" | "other";
 
 export type Mood = "indicative" | "subjunctive" | "imperative";
-export type Tense =
-  | "present"
-  | "preterite"
-  | "imperfect"
-  | "future"
-  | "conditional"
-  | "affirmative"
-  | "negative";
+export type Tense = "present" | "preterite" | "imperfect" | "future" | "conditional" | "affirmative" | "negative";
 export type Person = "1s" | "2s" | "3s" | "1p" | "2p" | "3p";
 
 export type Conjugation = Partial<Record<Mood, Partial<Record<Tense, Partial<Record<Person, string>>>>>>;

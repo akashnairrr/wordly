@@ -106,7 +106,10 @@ test("examples: whole-word match, spread across forms", () => {
   ]);
   const got = findExamples(index, ["tengo", "tienes"], 2).map((e) => e.text);
   assert.equal(got.length, 2);
-  assert.ok(got.some((t) => t.startsWith("¿Tienes")), "second form gets a sentence before the first form's second one");
+  assert.ok(
+    got.some((t) => t.startsWith("¿Tienes")),
+    "second form gets a sentence before the first form's second one",
+  );
   assert.ok(!got.some((t) => t.startsWith("Contengo")));
 });
 
@@ -135,8 +138,24 @@ test("examples: everyday sentences beat rare words, names, numbers and borrowed 
 });
 
 test("examples: dropped pronouns, drama and loose translations lose to plain literal speech", () => {
-  const dict: Record<string, string> = { tengo: "I have", hambre: "hunger", yo: "I", me: "me", puedes: "can", decir: "to say", la: "the", hora: "hour", qué: "what" };
-  const everyday = { rank: new Map(), commonCutoff: Infinity, basicCutoff: Infinity, droppedPronouns: new Set(["yo"]), gloss: (t: string) => dict[t] };
+  const dict: Record<string, string> = {
+    tengo: "I have",
+    hambre: "hunger",
+    yo: "I",
+    me: "me",
+    puedes: "can",
+    decir: "to say",
+    la: "the",
+    hora: "hour",
+    qué: "what",
+  };
+  const everyday = {
+    rank: new Map(),
+    commonCutoff: Infinity,
+    basicCutoff: Infinity,
+    droppedPronouns: new Set(["yo"]),
+    gloss: (t: string) => dict[t],
+  };
   const index = indexSentences(
     [
       { text: "¡Yo tengo hambre!", en: "I'm hungry!" },
@@ -145,8 +164,14 @@ test("examples: dropped pronouns, drama and loose translations lose to plain lit
     everyday,
   );
   assert.equal(findExamples(index, ["tengo"], 1)[0].text, "Tengo hambre.");
-  assert.equal(literalness(["me", "puedes", "decir", "la", "hora"], "What time is it?", (t) => dict[t]), 0);
-  assert.equal(literalness(["qué", "hora"], "What hour?", (t) => dict[t]), 1);
+  assert.equal(
+    literalness(["me", "puedes", "decir", "la", "hora"], "What time is it?", (t) => dict[t]),
+    0,
+  );
+  assert.equal(
+    literalness(["qué", "hora"], "What hour?", (t) => dict[t]),
+    1,
+  );
 });
 
 test("bestEntry: most real meanings wins; letter names don't count; verbs win ties", () => {

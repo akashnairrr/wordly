@@ -3,16 +3,16 @@ import type { IndexEntry, Progress } from "./types";
 export const MIN_SIZE = 5;
 export const MAX_SIZE = 15;
 
-export type Difficulty = "easy" | "moderate" | "hard";
+export type Difficulty = "Easy" | "Moderate" | "Hard";
 
 export const DIFFICULTY_INFO: Record<Difficulty, { label: string; note: string }> = {
-  easy: { label: "Easy", note: "A comfortable pace for daily practice." },
-  moderate: { label: "Moderate", note: "More words per lesson means a longer quiz and more to remember." },
-  hard: { label: "Hard", note: "A heavy lesson. Retention drops when you learn too many new words at once." },
+  Easy: { label: "Easy", note: "A comfortable pace for daily practice. Good if you're new to the language." },
+  Moderate: { label: "Moderate", note: "More words per lesson = longer quiz + more to remember." },
+  Hard: { label: "Hard", note: "A heavy lesson. Retention drops when you learn too many new words at once." },
 };
 
 export function difficulty(size: number): Difficulty {
-  return size <= 8 ? "easy" : size <= 12 ? "moderate" : "hard";
+  return size <= 8 ? "Easy" : size <= 12 ? "Moderate" : "Hard";
 }
 
 export function clampSize(n: number): number {

@@ -4,7 +4,8 @@ import type { Language } from "./languages";
 export const RATES = { normal: 0.95, slow: 0.7 } as const;
 
 // macOS/iOS novelty and legacy voices: robotic, so never picked by default.
-const ROBOTIC = /\b(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley|Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Fred|Junior|Kathy|Ralph)\b/i;
+const ROBOTIC =
+  /\b(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley|Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Fred|Junior|Kathy|Ralph)\b/i;
 // Neural/cloud voices (Edge "… Online (Natural)", Chrome "Google …", Apple "Enhanced"/"Premium") sound far more human.
 const NATURAL = /natural|neural|premium|enhanced|online|google/i;
 
@@ -25,9 +26,7 @@ export function voicesFor(lang: Language): Promise<SpeechSynthesisVoice[]> {
   const pick = () => {
     const all = speechSynthesis.getVoices();
     const localeRank = (v: SpeechSynthesisVoice) => lang.ttsLocales.findIndex((l) => matches(v, l));
-    return all
-      .filter((v) => localeRank(v) >= 0)
-      .sort((a, b) => voiceQuality(b) - voiceQuality(a) || localeRank(a) - localeRank(b));
+    return all.filter((v) => localeRank(v) >= 0).sort((a, b) => voiceQuality(b) - voiceQuality(a) || localeRank(a) - localeRank(b));
   };
   if (speechSynthesis.getVoices().length) return Promise.resolve(pick());
   return new Promise((resolve) => {

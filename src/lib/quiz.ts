@@ -2,15 +2,7 @@ import type { Language } from "./languages";
 import type { IndexEntry, Person, Word } from "./types";
 import { allForms, stripAccents, tokenize } from "./words";
 
-export type QuestionKind =
-  | "meaning"
-  | "reverse"
-  | "listen-select"
-  | "listen-type"
-  | "conjugation"
-  | "gender"
-  | "gendered-form"
-  | "cloze";
+export type QuestionKind = "meaning" | "reverse" | "listen-select" | "listen-type" | "conjugation" | "gender" | "gendered-form" | "cloze";
 
 export interface QuizQuestion {
   kind: QuestionKind;
@@ -45,7 +37,10 @@ function shuffle<T>(xs: T[], rng: Rng): T[] {
 
 /** Answer plus up to 3 distractors, shuffled. */
 function options(answer: string, candidates: string[], rng: Rng): string[] {
-  const distractors = shuffle([...new Set(candidates)].filter((c) => c && c !== answer), rng).slice(0, 3);
+  const distractors = shuffle(
+    [...new Set(candidates)].filter((c) => c && c !== answer),
+    rng,
+  ).slice(0, 3);
   return shuffle([answer, ...distractors], rng);
 }
 
@@ -85,7 +80,11 @@ const meaning: Maker = (w, { pool, rng }) => ({
   kind: "meaning",
   wordId: w.id,
   prompt: w.lemma,
-  options: options(w.glosses[0], samePos(w, pool).map((p) => p.gloss), rng),
+  options: options(
+    w.glosses[0],
+    samePos(w, pool).map((p) => p.gloss),
+    rng,
+  ),
   answer: w.glosses[0],
   reveal: sayWord(w),
 });
@@ -94,7 +93,11 @@ const reverse: Maker = (w, { pool, rng }) => ({
   kind: "reverse",
   wordId: w.id,
   prompt: w.glosses[0],
-  options: options(w.lemma, samePos(w, pool).map((p) => p.lemma), rng),
+  options: options(
+    w.lemma,
+    samePos(w, pool).map((p) => p.lemma),
+    rng,
+  ),
   answer: w.lemma,
   reveal: sayWord(w),
 });
@@ -110,14 +113,18 @@ const listenSelect: Maker = (w, { pool, rng }) =>
         prompt: "",
         audio: w.lemma,
         audioUrl: w.audio,
-        options: options(w.lemma, samePos(w, pool).map((p) => p.lemma), rng),
+        options: options(
+          w.lemma,
+          samePos(w, pool).map((p) => p.lemma),
+          rng,
+        ),
         answer: w.lemma,
         reveal: sayWord(w),
       }
     : undefined;
 
 const listenType: Maker = (w) =>
-    audible(w)
+  audible(w)
     ? { kind: "listen-type", wordId: w.id, prompt: "", audio: w.lemma, audioUrl: w.audio, hint: w.glosses[0], answer: w.lemma, reveal: sayWord(w) }
     : undefined;
 
@@ -132,7 +139,11 @@ const conjugation: Maker = (w, { lang, rng }) => {
     wordId: w.id,
     prompt: w.lemma,
     hint: `${lang.personLabels[c.person]} · ${c.label}`,
-    options: options(c.form, cells.map((x) => x.form), rng),
+    options: options(
+      c.form,
+      cells.map((x) => x.form),
+      rng,
+    ),
     answer: c.form,
     reveal: sayForm(w, c.form),
   };
@@ -181,7 +192,11 @@ const cloze: Maker = (w, { pool, rng }) => {
       wordId: w.id,
       prompt: ex.text.replace(re, "_____"),
       hint: ex.en,
-      options: options(answer, others.filter((o) => o.toLowerCase() !== answer.toLowerCase()), rng),
+      options: options(
+        answer,
+        others.filter((o) => o.toLowerCase() !== answer.toLowerCase()),
+        rng,
+      ),
       answer,
       // The whole sentence with the gap filled, in the native recording when Tatoeba has one.
       reveal: { text: ex.text, audio: ex.audio },
@@ -198,12 +213,7 @@ const SPECIFIC: Maker[] = [conjugation, gender, genderedForm, cloze];
  * is used (conjugation, gender, gendered form, sentence cloze) when the data supports it.
  * With speech available, at least one listening question is guaranteed (if any word is long enough to hear).
  */
-export function buildQuiz(
-  words: Word[],
-  pool: IndexEntry[],
-  lang: Language,
-  opts: { speech: boolean; rng?: Rng },
-): QuizQuestion[] {
+export function buildQuiz(words: Word[], pool: IndexEntry[], lang: Language, opts: { speech: boolean; rng?: Rng }): QuizQuestion[] {
   const rng = opts.rng ?? Math.random;
   const ctx: Ctx = { lang, pool, rng };
   const recall = opts.speech ? [...CORE, ...LISTEN] : CORE;
@@ -220,7 +230,11 @@ export function buildQuiz(
   }
   if (opts.speech && !qs.some((q) => q.kind.startsWith("listen"))) {
     const i = qs.findIndex((q) => (q.kind === "meaning" || q.kind === "reverse") && audible(words.find((w) => w.id === q.wordId)!));
-    if (i >= 0) qs[i] = listenSelect(words.find((w) => w.id === qs[i].wordId)!, ctx)!;
+    if (i >= 0)
+      qs[i] = listenSelect(
+        words.find((w) => w.id === qs[i].wordId)!,
+        ctx,
+      )!;
   }
   return shuffle(qs, rng);
 }

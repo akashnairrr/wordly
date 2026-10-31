@@ -1,16 +1,33 @@
 "use client";
 
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import Paper from "@mui/material/Paper";
+import SvgIcon from "@mui/material/SvgIcon";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
 import { grade, QUESTION_TITLES, type Grade, type QuizQuestion } from "@/lib/quiz";
+import { C, displayFont, num, RADIUS_SM } from "@/theme";
 import { SpeakButton } from "./SpeakButton";
 import { useSpeech } from "./SpeechProvider";
-import styles from "./Quiz.module.css";
 
 export interface QuizResult {
   question: QuizQuestion;
   given: string;
   grade: Grade;
 }
+
+// Prompts written in the language being learned (the rest are English).
+const TARGET_PROMPT = new Set<QuizQuestion["kind"]>(["meaning", "cloze", "conjugation", "gender", "gendered-form"]);
+
+const OPTION = {
+  right: { borderColor: C.rock, bgcolor: C.tintSoft, color: C.venice, fontWeight: 600 },
+  wrong: { borderColor: C.danger, bgcolor: C.dangerSoft, color: C.danger },
+  dim: { opacity: 0.5 },
+} as const;
 
 /** Runs the questions in order. There's deliberately no skip: every question must be answered. */
 export function Quiz({ questions, lang, onDone }: { questions: QuizQuestion[]; lang: string; onDone: (results: QuizResult[]) => void }) {
@@ -44,80 +61,126 @@ export function Quiz({ questions, lang, onDone }: { questions: QuizQuestion[]; l
   }
 
   return (
-    <section className={styles.quiz} aria-label="Quiz">
-      <div className={styles.steps} aria-hidden>
+    <Paper component="section" variant="outlined" aria-label="Quiz" sx={{ p: 3 }}>
+      <Box aria-hidden sx={{ display: "flex", gap: 0.5, mb: 2.25 }}>
         {questions.map((_, n) => (
-          <i key={n} className={n < i || (n === i && given !== null) ? styles.done : n === i ? styles.current : undefined} />
+          <Box
+            key={n}
+            sx={{ flex: 1, height: 6, borderRadius: 999, bgcolor: n < i || (n === i && given !== null) ? C.venice : n === i ? C.rock : C.line }}
+          />
         ))}
-      </div>
-      <div className="spread">
-        <span className="label">{QUESTION_TITLES[q.kind]}</span>
-        <span className="small num">
+      </Box>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1.5 }}>
+        <Box component="span" sx={{ fontSize: 14, fontWeight: 600, color: C.muted }}>
+          {QUESTION_TITLES[q.kind]}
+        </Box>
+        <Typography variant="body2" component="span" sx={num}>
           {i + 1} of {questions.length}
-        </span>
-      </div>
+        </Typography>
+      </Box>
 
       {q.prompt && (
-        <div className={q.kind === "cloze" ? styles.sentence : styles.prompt} lang={q.kind === "meaning" || q.kind === "cloze" || q.kind === "conjugation" || q.kind === "gender" || q.kind === "gendered-form" ? lang : undefined}>
+        <Box
+          lang={TARGET_PROMPT.has(q.kind) ? lang : undefined}
+          sx={
+            q.kind === "cloze"
+              ? { fontSize: 24, fontWeight: 500, lineHeight: 1.4, mt: 1.5, textWrap: "pretty" }
+              : { ...displayFont, fontSize: "clamp(30px, 7vw, 44px)", lineHeight: 1.15, color: C.venice, mt: 1.5, textWrap: "balance" }
+          }
+        >
           {q.prompt}
-        </div>
+        </Box>
       )}
-      {q.hint && (q.kind !== "listen-type" || given !== null) && <p className={styles.hint}>{q.hint}</p>}
+      {q.hint && (q.kind !== "listen-type" || given !== null) && <Box sx={{ color: C.muted, mt: 0.75 }}>{q.hint}</Box>}
 
       {q.audio && (
-        <div className={styles.listen}>
-          <button type="button" className={styles.play} onClick={() => play()} aria-label="Play the word again">
-            <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden fill="currentColor">
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mt: 2.5, mb: 0.5 }}>
+          <IconButton
+            onClick={() => play()}
+            aria-label="Play the word again"
+            sx={{ width: 64, height: 64, bgcolor: C.venice, color: C.merino, "&:hover": { bgcolor: C.venice } }}
+          >
+            <SvgIcon sx={{ fontSize: 28 }}>
               <path d="M8 5v14l11-7z" />
-            </svg>
-          </button>
-          <button type="button" className="btn btn-outline" onClick={() => play(true)}>
+            </SvgIcon>
+          </IconButton>
+          <Button variant="outlined" onClick={() => play(true)}>
             Slower
-          </button>
-        </div>
+          </Button>
+        </Box>
       )}
 
       {q.options ? (
-        <div className={styles.options}>
+        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 1.25, mt: 2.5 }}>
           {q.options.map((o) => {
-            const state = given === null ? "" : o === q.answer ? styles.right : o === given ? styles.wrong : styles.dim;
+            const state = given === null ? undefined : o === q.answer ? OPTION.right : o === given ? OPTION.wrong : OPTION.dim;
             return (
-              <button key={o} type="button" className={`${styles.option} ${state}`} onClick={() => answer(o)} disabled={given !== null}>
+              <Button
+                key={o}
+                variant="outlined"
+                onClick={() => answer(o)}
+                disabled={given !== null}
+                sx={{
+                  justifyContent: "flex-start",
+                  textAlign: "left",
+                  minHeight: 56,
+                  px: 2,
+                  py: 1.5,
+                  bgcolor: C.merino,
+                  color: C.venice,
+                  borderColor: C.line,
+                  borderRadius: `${RADIUS_SM}px`,
+                  fontWeight: 400,
+                  "&:hover": { borderColor: C.venice, bgcolor: C.merino },
+                  "&.Mui-disabled": { opacity: 1, color: C.venice, borderColor: C.line, ...state },
+                }}
+              >
                 {o}
-              </button>
+              </Button>
             );
           })}
-        </div>
+        </Box>
       ) : (
-        <form
-          className={styles.typeRow}
+        <Box
+          component="form"
+          sx={{ display: "flex", gap: 1.25, mt: 2.5 }}
           onSubmit={(e) => {
             e.preventDefault();
             if (typed.trim()) answer(typed);
           }}
         >
-          <input
-            className="input"
+          <TextField
+            fullWidth
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             placeholder="Type what you hear"
             autoFocus
             autoComplete="off"
-            autoCapitalize="off"
-            spellCheck={false}
             disabled={given !== null}
-            aria-label="Your answer"
-            lang={lang}
+            slotProps={{ htmlInput: { "aria-label": "Your answer", autoCapitalize: "off", spellCheck: false, lang } }}
           />
-          <button className="btn" disabled={given !== null || !typed.trim()}>
+          <Button type="submit" disabled={given !== null || !typed.trim()}>
             Check
-          </button>
-        </form>
+          </Button>
+        </Box>
       )}
 
       {result && (
-        <div className={`${styles.feedback} ${result === "wrong" ? styles.bad : styles.good}`} role="status">
-          <span className={styles.feedbackText}>
+        <Alert
+          role="status"
+          sx={{
+            mt: 2.5,
+            alignItems: "center",
+            ...(result === "wrong" && { bgcolor: C.dangerSoft, color: C.danger }),
+            "& .MuiAlert-message": { flex: 1 },
+          }}
+          action={
+            <Button onClick={next} autoFocus>
+              {i + 1 >= questions.length ? "See results" : "Next"}
+            </Button>
+          }
+        >
+          <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 1.25, fontSize: 17 }}>
             <SpeakButton text={q.reveal.text} audio={q.reveal.audio} size="sm" />
             <span>
               {result === "correct" && "Correct!"}
@@ -132,12 +195,9 @@ export function Quiz({ questions, lang, onDone }: { questions: QuizQuestion[]; l
                 </>
               )}
             </span>
-          </span>
-          <button type="button" className="btn" onClick={next} autoFocus>
-            {i + 1 >= questions.length ? "See results" : "Next"}
-          </button>
-        </div>
+          </Box>
+        </Alert>
       )}
-    </section>
+    </Paper>
   );
 }

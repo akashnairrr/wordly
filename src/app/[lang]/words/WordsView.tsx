@@ -1,16 +1,30 @@
 "use client";
 
-import Link from "next/link";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import Paper from "@mui/material/Paper";
+import Skeleton from "@mui/material/Skeleton";
+import TextField from "@mui/material/TextField";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Typography from "@mui/material/Typography";
+import NextLink from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
-import { STATUS_CHIP, STATUS_LABEL } from "@/components/WordStatusBar";
+import { useEffect, useState } from "react";
+import { EmptyState } from "@/components/EmptyState";
+import { ButtonLink, wordsSearchKey } from "@/components/links";
+import { ToneChip } from "@/components/ToneChip";
+import { STATUS_LABEL, STATUS_TONE } from "@/components/WordStatusBar";
 import { POS_LABELS } from "@/lib/languages";
 import { wordStatus, type WordStatus } from "@/lib/session";
 import type { Pos } from "@/lib/types";
 import { useIndex } from "@/lib/useIndex";
 import { useProgress } from "@/lib/useProgress";
 import { stripAccents } from "@/lib/words";
-import styles from "./words.module.css";
+import { C, displayFont, num } from "@/theme";
 
 const PAGE = 100;
 
@@ -46,8 +60,17 @@ export function WordsView({ lang }: { lang: string }) {
   const [query, setQuery] = useState(params.get("q") ?? "");
   const [shown, setShown] = useState(PAGE);
 
-  if (error) return <p className="empty">Could not load words: {error}</p>;
-  if (!index || !progress) return <div className="skeleton" style={{ marginTop: 24, minHeight: 480 }} />;
+  // The word page's "← All words" link returns to this exact list.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(wordsSearchKey(lang), window.location.search);
+    } catch {
+      // Storage blocked: the back link shows the plain list.
+    }
+  }, [lang, query, status, pos]);
+
+  if (error) return <EmptyState text={`Could not load words: ${error}`} />;
+  if (!index || !progress) return <Skeleton sx={{ mt: 3, minHeight: 480 }} />;
 
   const statuses = new Map(index.map((w) => [w.id, wordStatus(w.id, progress)]));
   const count = (s: WordStatus) => index.filter((w) => statuses.get(w.id) === s).length;
@@ -62,45 +85,45 @@ export function WordsView({ lang }: { lang: string }) {
 
   return (
     <>
-      <header className={styles.head}>
-        <h1 className={styles.title}>Common words</h1>
-        <p className="muted" style={{ margin: "6px 0 0" }}>
+      <Box component="header" sx={{ mt: 3.5 }}>
+        <Typography variant="h1">Common words</Typography>
+        <Box component="p" sx={{ color: C.muted, mt: 0.75, mb: 0 }}>
           The {index.length} most spoken words, most frequent first.
-        </p>
-      </header>
+        </Box>
+      </Box>
 
-      <section className={styles.summary}>
-        <div className={styles.summaryText}>
-          <span className="display num" style={{ fontSize: 34, color: "var(--accent)" }}>
+      <Paper
+        component="section"
+        variant="outlined"
+        sx={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", gap: 2, mt: 2.5, p: 2.5 }}
+      >
+        <Box sx={{ flex: "1 1 220px" }}>
+          <Box component="span" sx={{ ...displayFont, ...num, fontSize: 34, color: C.venice }}>
             {studiedCount}
-          </span>{" "}
-          <span className="muted">of {index.length} studied</span>
-          <div className="meter" style={{ marginTop: 10 }}>
-            <i style={{ transform: `scaleX(${studiedCount / index.length})` }} />
-          </div>
-        </div>
-        <div className="row">
+          </Box>{" "}
+          <Box component="span" sx={{ color: C.muted }}>
+            of {index.length} studied
+          </Box>
+          <LinearProgress value={(studiedCount / index.length) * 100} aria-label="Words studied" sx={{ mt: 1.25 }} />
+        </Box>
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.25 }}>
           {studiedCount > 0 ? (
             <>
-              <Link href={`/${lang}/session/?mode=review`} className="btn">
-                Review studied
-              </Link>
+              <ButtonLink href={`/${lang}/session/?mode=review`}>Review studied</ButtonLink>
               {count("practice") > 0 && (
-                <Link href={`/${lang}/session/?mode=review&filter=practice`} className="btn btn-outline">
+                <ButtonLink href={`/${lang}/session/?mode=review&filter=practice`} variant="outlined">
                   Practise {count("practice")} weak
-                </Link>
+                </ButtonLink>
               )}
             </>
           ) : (
-            <Link href={`/${lang}/session/`} className="btn">
-              Start your first lesson
-            </Link>
+            <ButtonLink href={`/${lang}/session/`}>Start your first lesson</ButtonLink>
           )}
-        </div>
-      </section>
+        </Box>
+      </Paper>
 
-      <input
-        className="input"
+      <TextField
+        fullWidth
         type="search"
         placeholder="Search in either language"
         value={query}
@@ -109,52 +132,62 @@ export function WordsView({ lang }: { lang: string }) {
           syncUrl({ q: e.target.value });
           setShown(PAGE);
         }}
-        aria-label="Search words"
-        style={{ marginTop: 20 }}
+        slotProps={{ htmlInput: { "aria-label": "Search words" } }}
+        sx={{ mt: 2.5 }}
       />
-      <div className="segments" role="group" aria-label="Status" style={{ marginTop: 8 }}>
+      <ToggleButtonGroup
+        exclusive
+        value={status}
+        onChange={(_, f: StatusFilter | null) => {
+          if (!f) return;
+          setStatus(f);
+          syncUrl({ filter: f });
+          setShown(PAGE);
+        }}
+        aria-label="Status"
+        sx={{ mt: 1, display: "flex" }}
+      >
         {STATUS_FILTERS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            className="segment"
-            aria-pressed={status === f.id}
-            onClick={() => {
-              setStatus(f.id);
-              syncUrl({ filter: f.id });
-              setShown(PAGE);
-            }}
-          >
-            {f.label} <span className="num muted">{f.id === "all" ? index.length : count(f.id)}</span>
-          </button>
+          <ToggleButton key={f.id} value={f.id} sx={{ gap: 0.5 }}>
+            {f.label}{" "}
+            <Box component="span" sx={{ ...num, color: C.muted, fontWeight: 400 }}>
+              {f.id === "all" ? index.length : count(f.id)}
+            </Box>
+          </ToggleButton>
         ))}
-      </div>
-      <div className={styles.posRow}>
-        <label htmlFor="pos" className="small">
+      </ToggleButtonGroup>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, mt: 1.5, mb: 0.5 }}>
+        <Box component="label" htmlFor="pos" sx={{ fontSize: 14, color: C.muted }}>
           Part of speech
-        </label>
-        <select id="pos" className={styles.select} value={pos} onChange={(e) => {
+        </Box>
+        <TextField
+          select
+          size="small"
+          id="pos"
+          value={pos}
+          onChange={(e) => {
             setPos(e.target.value as Pos | "all");
             syncUrl({ pos: e.target.value as Pos | "all" });
-          }}>
+          }}
+          slotProps={{ select: { native: true } }}
+          sx={{ "& .MuiOutlinedInput-root": { minHeight: 36, borderRadius: 999 } }}
+        >
           <option value="all">Any</option>
           {POS_FILTERS.map((p) => (
             <option key={p} value={p}>
               {POS_LABELS[p]}
             </option>
           ))}
-        </select>
-        <span className="small num" style={{ marginLeft: "auto" }}>
+        </TextField>
+        <Typography variant="body2" component="span" sx={{ ...num, ml: "auto" }}>
           {list.length} shown
-        </span>
-      </div>
+        </Typography>
+      </Box>
 
       {list.length === 0 ? (
-        <div className="empty">
-          <p>No words match.</p>
-          <button
-            type="button"
-            className="btn btn-outline"
+        <EmptyState text="No words match.">
+          <Button
+            variant="outlined"
             onClick={() => {
               setQuery("");
               setStatus("all");
@@ -163,32 +196,47 @@ export function WordsView({ lang }: { lang: string }) {
             }}
           >
             Clear filters
-          </button>
-        </div>
+          </Button>
+        </EmptyState>
       ) : (
-        <ol className={styles.list}>
+        <List component="ol" disablePadding sx={{ mt: 1 }}>
           {list.slice(0, shown).map((w) => {
             const s = statuses.get(w.id)!;
             return (
               <li key={w.id}>
-                <Link href={`/${lang}/words/${w.id}/`} className={styles.item}>
-                  <span className={`num ${styles.rank}`}>{w.rank}</span>
-                  <span className={styles.main}>
-                    <b lang={lang}>{w.lemma}</b>
-                    <span className={styles.gloss}>{w.gloss}</span>
-                  </span>
-                  <span className={styles.pos}>{POS_LABELS[w.pos]}</span>
-                  {s !== "new" && <span className={STATUS_CHIP[s]}>{STATUS_LABEL[s]}</span>}
-                </Link>
+                <ListItemButton
+                  component={NextLink}
+                  href={`/${lang}/words/${w.id}/`}
+                  sx={{ gap: 1.5, py: 1.5, px: 0.5, borderBottom: `1px solid ${C.line}`, "&:hover b": { color: C.venice } }}
+                >
+                  <Box component="span" sx={{ ...num, width: "3ch", textAlign: "right", color: C.muted, fontSize: 13, flexShrink: 0 }}>
+                    {w.rank}
+                  </Box>
+                  <Box component="span" sx={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 1.25 }}>
+                    <Box component="b" lang={lang} sx={{ fontSize: 18, flexShrink: 0 }}>
+                      {w.lemma}
+                    </Box>
+                    <Box component="span" sx={{ color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {w.gloss}
+                    </Box>
+                  </Box>
+                  <Box component="span" sx={{ fontSize: 13, color: C.muted, flexShrink: 0, display: { xs: "none", sm: "inline" } }}>
+                    {POS_LABELS[w.pos]}
+                  </Box>
+                  {s !== "new" && <ToneChip tone={STATUS_TONE[s]} label={STATUS_LABEL[s]} />}
+                </ListItemButton>
               </li>
             );
           })}
-        </ol>
+        </List>
       )}
       {shown < list.length && (
-        <button type="button" className="btn btn-outline btn-block" style={{ marginTop: 16 }} onClick={() => setShown(shown + PAGE)}>
-          Show more <span className="num">({list.length - shown} left)</span>
-        </button>
+        <Button variant="outlined" fullWidth sx={{ mt: 2 }} onClick={() => setShown(shown + PAGE)}>
+          Show more{" "}
+          <Box component="span" sx={num}>
+            ({list.length - shown} left)
+          </Box>
+        </Button>
       )}
     </>
   );

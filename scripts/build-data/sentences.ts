@@ -63,8 +63,7 @@ export function literalness(tokens: string[], en: string, gloss: Everyday["gloss
 function measure(text: string, en: string, everyday: Everyday): SentenceStats {
   const tokens = tokenize(text);
   const rankOf = (t: string) => everyday.rank.get(t) ?? Infinity;
-  const isName = (m: RegExpExecArray) =>
-    /\s/.test(text[m.index - 1] ?? "") || (!!everyday.gloss && !everyday.gloss(m[0].toLowerCase()));
+  const isName = (m: RegExpExecArray) => /\s/.test(text[m.index - 1] ?? "") || (!!everyday.gloss && !everyday.gloss(m[0].toLowerCase()));
   return {
     tokens,
     rare: tokens.filter((t) => rankOf(t) >= everyday.commonCutoff),
@@ -146,13 +145,7 @@ const QUESTION_PENALTY = 6;
  * `ambiguous` holds forms shared with other words, whose matches are deprioritised; `pronoun` is set when the word
  * taught is itself a subject pronoun.
  */
-export function findExamples(
-  index: SentenceIndex,
-  forms: string[],
-  max: number,
-  ambiguous: Set<string> = new Set(),
-  pronoun = false,
-): Example[] {
+export function findExamples(index: SentenceIndex, forms: string[], max: number, ambiguous: Set<string> = new Set(), pronoun = false): Example[] {
   const best = new Map<number, { score: number; form: string }>();
   [...new Set(forms.map((f) => f.toLowerCase()))].slice(0, FORMS_CONSIDERED).forEach((form, rank) => {
     for (const i of index.byToken.get(form) ?? []) {

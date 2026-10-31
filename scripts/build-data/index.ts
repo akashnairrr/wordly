@@ -51,11 +51,15 @@ async function main() {
     if (pos && (isLemmaEntry(e) || forcedByOverride)) lemmas.set(e.word, [...(lemmas.get(e.word) ?? []), e]);
   };
   console.log("Reading Wiktionary (pass 1)…");
-  await streamEntries(files.wiktionary, (w) => freqSet.has(w), (e) => {
-    addLemma(e);
-    const targets = formOfTargets(e);
-    if (targets.length) formOf.set(e.word, [...(formOf.get(e.word) ?? []), ...targets]);
-  });
+  await streamEntries(
+    files.wiktionary,
+    (w) => freqSet.has(w),
+    (e) => {
+      addLemma(e);
+      const targets = formOfTargets(e);
+      if (targets.length) formOf.set(e.word, [...(formOf.get(e.word) ?? []), ...targets]);
+    },
+  );
 
   // Pass 2: lemmas of inflected forms whose dictionary form isn't itself in the frequency list.
   const overrideLemmas = Object.values(overrides).flatMap((o) => ("lemma" in o ? [o.lemma] : []));
@@ -132,7 +136,8 @@ async function main() {
   // A spelling shared by several words (como: "like" and "I eat") is a weak match for all but its own lemma.
   const owners = new Map<string, number>();
   for (const w of picked) for (const f of allForms(w)) owners.set(f.toLowerCase(), (owners.get(f.toLowerCase()) ?? 0) + 1);
-  const byFrequency = (forms: string[]) => [...forms].sort((a, b) => (rank.get(a.toLowerCase()) ?? Infinity) - (rank.get(b.toLowerCase()) ?? Infinity));
+  const byFrequency = (forms: string[]) =>
+    [...forms].sort((a, b) => (rank.get(a.toLowerCase()) ?? Infinity) - (rank.get(b.toLowerCase()) ?? Infinity));
 
   const withExamples: Word[] = picked.map((w) => {
     // Wiktionary's own recording (curated) first, then Lingua Libre.
@@ -147,7 +152,11 @@ async function main() {
         sentences,
         byFrequency(allForms(w)),
         MAX_EXAMPLES,
-        new Set(allForms(w).filter((f) => f !== w.lemma && (owners.get(f.toLowerCase()) ?? 0) > 1).map((f) => f.toLowerCase())),
+        new Set(
+          allForms(w)
+            .filter((f) => f !== w.lemma && (owners.get(f.toLowerCase()) ?? 0) > 1)
+            .map((f) => f.toLowerCase()),
+        ),
         droppedPronouns.has(w.lemma),
       ),
     };
@@ -160,13 +169,20 @@ async function main() {
   const PHRASE_POS = ["intj", "adv", "phrase"];
   const phraseEntries = new Map<string, RawEntry[]>();
   console.log("Reading Wiktionary (pass 3, phrases)…");
-  await streamEntries(files.wiktionary, (w) => ngrams.has(w.toLowerCase()), (e) => {
-    if (isLemmaEntry(e)) phraseEntries.set(e.word.toLowerCase(), [...(phraseEntries.get(e.word.toLowerCase()) ?? []), e]);
-  });
+  await streamEntries(
+    files.wiktionary,
+    (w) => ngrams.has(w.toLowerCase()),
+    (e) => {
+      if (isLemmaEntry(e)) phraseEntries.set(e.word.toLowerCase(), [...(phraseEntries.get(e.word.toLowerCase()) ?? []), e]);
+    },
+  );
   const phrases = new Map<string, string>();
   for (const [key, entries] of phraseEntries) {
-    const rankPos = (e: RawEntry) => (PHRASE_POS.indexOf(e.pos) + 1 || PHRASE_POS.length + 1);
-    const best = entries.sort((a, b) => rankPos(a) - rankPos(b)).map((e) => translatingGloss(usableGlosses(e))).find(Boolean);
+    const rankPos = (e: RawEntry) => PHRASE_POS.indexOf(e.pos) + 1 || PHRASE_POS.length + 1;
+    const best = entries
+      .sort((a, b) => rankPos(a) - rankPos(b))
+      .map((e) => translatingGloss(usableGlosses(e)))
+      .find(Boolean);
     if (!best) continue;
     const gloss = shortGloss(best);
     // Skip non-translations (a la → "a la") and runs of the commonest function words whose meaning is long

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Box from "@mui/material/Box";
+import { WordsBackLink } from "@/components/links";
 import { WordCard } from "@/components/WordCard";
 import { WordStatusBar } from "@/components/WordStatusBar";
 import { readIndex, readWord } from "@/lib/server-data";
@@ -21,9 +22,9 @@ export default async function WordPage({ params }: PageProps<"/[lang]/words/[id]
   const word = readWord(lang, id);
   return (
     <>
-      <p style={{ margin: "20px 0 12px" }}>
-        <Link href={`/${lang}/words/`}>← All words</Link>
-      </p>
+      <Box component="p" sx={{ mt: 2.5, mb: 1.5 }}>
+        <WordsBackLink lang={lang} />
+      </Box>
       <WordStatusBar lang={lang} id={id} />
       <WordCard word={word} lang={lang} />
     </>

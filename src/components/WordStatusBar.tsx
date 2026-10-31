@@ -1,37 +1,42 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
 import { skipWord, unskipWord } from "@/lib/progress";
 import { wordStatus, type WordStatus } from "@/lib/session";
 import { useProgress } from "@/lib/useProgress";
+import { num } from "@/theme";
+import { ToneChip, type Tone } from "./ToneChip";
 
 export const STATUS_LABEL: Record<WordStatus, string> = { new: "Not started", studied: "Studied", practice: "Needs practice", skipped: "Skipped" };
-export const STATUS_CHIP: Record<WordStatus, string> = { new: "chip", studied: "chip chip-studied", practice: "chip chip-practice", skipped: "chip chip-skipped" };
+export const STATUS_TONE: Record<WordStatus, Tone> = { new: "plain", studied: "studied", practice: "practice", skipped: "skipped" };
 
 /** Where this word stands for the learner, with skip / un-skip. */
 export function WordStatusBar({ lang, id }: { lang: string; id: string }) {
   const [progress, update] = useProgress(lang);
-  if (!progress) return <div style={{ minHeight: 48 }} />;
+  if (!progress) return <Box sx={{ minHeight: 48 }} />;
   const status = wordStatus(id, progress);
   const stats = progress.learned[id];
   return (
-    <div className="spread" style={{ flexWrap: "wrap", margin: "0 0 14px" }}>
-      <span className="row">
-        <span className={STATUS_CHIP[status]}>{STATUS_LABEL[status]}</span>
+    <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 1.5, mb: 1.75 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
+        <ToneChip tone={STATUS_TONE[status]} label={STATUS_LABEL[status]} />
         {stats && (
-          <span className="small num">
+          <Typography variant="body2" sx={num}>
             {stats.correct} right · {stats.wrong} missed
-          </span>
+          </Typography>
         )}
-      </span>
+      </Box>
       {status === "skipped" ? (
-        <button type="button" className="btn btn-outline" onClick={() => update((p) => unskipWord(p, id))}>
+        <Button variant="outlined" onClick={() => update((p) => unskipWord(p, id))}>
           Add back to lessons
-        </button>
+        </Button>
       ) : status === "new" ? (
-        <button type="button" className="btn btn-quiet" onClick={() => update((p) => skipWord(p, id))}>
+        <Button variant="text" onClick={() => update((p) => skipWord(p, id))}>
           Skip this word
-        </button>
+        </Button>
       ) : null}
-    </div>
+    </Box>
   );
 }

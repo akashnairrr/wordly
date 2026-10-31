@@ -50,10 +50,7 @@ export function SpeechProvider({ lang, children }: { lang: string; children: Rea
     [voice, rate, language],
   );
 
-  const api = useMemo(
-    () => ({ available: voices === null ? null : voices.length > 0, voices: voices ?? [], voice, say }),
-    [voices, voice, say],
-  );
+  const api = useMemo(() => ({ available: voices === null ? null : voices.length > 0, voices: voices ?? [], voice, say }), [voices, voice, say]);
   return <SpeechContext.Provider value={api}>{children}</SpeechContext.Provider>;
 }
 

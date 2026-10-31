@@ -1,8 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import AppBar from "@mui/material/AppBar";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Toolbar from "@mui/material/Toolbar";
+import NextLink from "next/link";
 import { usePathname } from "next/navigation";
-import styles from "./Header.module.css";
+import { C, column, displayFont, Z } from "@/theme";
 
 export function Header({ lang, languageName }: { lang: string; languageName: string }) {
   const path = usePathname().replace(/\/?$/, "/");
@@ -12,20 +16,40 @@ export function Header({ lang, languageName }: { lang: string; languageName: str
     { href: `/${lang}/progress/`, label: "Progress", active: path.startsWith(`/${lang}/progress`) },
   ];
   return (
-    <header className={styles.header}>
-      <div className={styles.inner}>
-        <Link href="/" className={styles.logo}>
+    <AppBar
+      position="sticky"
+      elevation={0}
+      color="inherit"
+      sx={{ zIndex: Z.header, bgcolor: C.merino, borderBottom: `1px solid ${C.line}`, pt: "env(safe-area-inset-top)" }}
+    >
+      <Toolbar disableGutters sx={{ ...column, width: "100%", minHeight: 60, gap: { xs: 1.25, sm: 2.5 } }}>
+        <Box component={NextLink} href="/" sx={{ ...displayFont, fontSize: 26, color: C.venice, textDecoration: "none", lineHeight: 1 }}>
           wordly
-        </Link>
-        <nav className={styles.nav} aria-label="Main">
+        </Box>
+        <Box component="nav" aria-label="Main" sx={{ display: "flex", gap: 0.5, flex: 1 }}>
           {links.map((l) => (
-            <Link key={l.href} href={l.href} className={styles.link} aria-current={l.active ? "page" : undefined}>
+            <Button
+              key={l.href}
+              component={NextLink}
+              href={l.href}
+              variant="text"
+              aria-current={l.active ? "page" : undefined}
+              sx={{
+                minHeight: 0,
+                px: { xs: 1, sm: 1.25 },
+                py: 1,
+                fontWeight: 500,
+                "&[aria-current=page]": { color: C.venice, fontWeight: 600, bgcolor: C.tintSoft, boxShadow: `inset 0 -3px 0 ${C.rock}` },
+              }}
+            >
               {l.label}
-            </Link>
+            </Button>
           ))}
-        </nav>
-        <span className={styles.lang}>{languageName}</span>
-      </div>
-    </header>
+        </Box>
+        <Box component="span" sx={{ fontSize: 14, color: C.muted, display: { xs: "none", sm: "inline" } }}>
+          {languageName}
+        </Box>
+      </Toolbar>
+    </AppBar>
   );
 }
