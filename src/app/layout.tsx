@@ -21,6 +21,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: "#F5EEDD",
+  // Light only, on every device: "only" also opts out of browsers that darken pages themselves (Chrome's auto dark
+  // mode on Android, Samsung Internet's dark mode).
+  colorScheme: "only light",
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

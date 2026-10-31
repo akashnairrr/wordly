@@ -1,6 +1,7 @@
 /* Everything else is in the MUI theme (src/theme.ts). */
 :root {
-  color-scheme: light;
+  /* Light only: form controls and scrollbars stay light, and browsers don't auto-darken the page. */
+  color-scheme: only light;
 }
 
 html {
