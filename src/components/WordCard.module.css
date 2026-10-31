@@ -116,17 +116,75 @@
   border-bottom: 0;
 }
 
-.example mark {
+.exampleHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Sentence as word units, each with its meaning underneath. */
+.sentence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 4px;
+}
+
+.unit {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 100%;
+}
+
+.es,
+.unit mark,
+.punct {
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.3;
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.punct {
+  padding: 1px 0;
+}
+
+.unit mark {
   background: none;
   color: var(--accent);
   font-weight: 700;
   text-decoration: underline;
   text-decoration-color: var(--rock);
   text-decoration-thickness: 3px;
-  text-underline-offset: 3px;
+  text-underline-offset: 4px;
+  padding: 1px 2px;
 }
 
-.exampleText {
-  font-size: 19px;
-  font-weight: 500;
+.en {
+  font-size: 13px;
+  line-height: 1.25;
+  padding: 3px 6px 0;
+  max-width: 16ch;
+  text-wrap: balance;
+}
+
+/* Colour pairs (word background / meaning text), each 5:1 or better on Merino. */
+.c0 .es { background: #d6e6f0; }
+.c0 .en { color: #16587b; }
+.c1 .es { background: #f6dcc7; }
+.c1 .en { color: #8a4317; }
+.c2 .es { background: #dce9d3; }
+.c2 .en { color: #3d6a2a; }
+.c3 .es { background: #e5ddf2; }
+.c3 .en { color: #5b3e8f; }
+.c4 .es { background: #f1e3b5; }
+.c4 .en { color: #6f5208; }
+
+.translation {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 15px;
 }

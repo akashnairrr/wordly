@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { grade, QUESTION_TITLES, type Grade, type QuizQuestion } from "@/lib/quiz";
+import { SpeakButton } from "./SpeakButton";
 import { useSpeech } from "./SpeechProvider";
 import styles from "./Quiz.module.css";
 
@@ -29,6 +30,8 @@ export function Quiz({ questions, lang, onDone }: { questions: QuizQuestion[]; l
 
   function answer(value: string) {
     if (given !== null) return;
+    // Hear the right answer straight away, whether or not it was chosen, as extra listening practice.
+    say(q.reveal.text, { audio: q.reveal.audio });
     setGiven(value);
     setResults((r) => [...r, { question: q, given: value, grade: grade(q, value) }]);
   }
@@ -114,18 +117,21 @@ export function Quiz({ questions, lang, onDone }: { questions: QuizQuestion[]; l
 
       {result && (
         <div className={`${styles.feedback} ${result === "wrong" ? styles.bad : styles.good}`} role="status">
-          <span>
-            {result === "correct" && "Correct!"}
-            {result === "accent" && (
-              <>
-                Correct. Mind the accent: <b lang={lang}>{q.answer}</b>
-              </>
-            )}
-            {result === "wrong" && (
-              <>
-                The answer is <b lang={lang}>{q.answer}</b>
-              </>
-            )}
+          <span className={styles.feedbackText}>
+            <SpeakButton text={q.reveal.text} audio={q.reveal.audio} size="sm" />
+            <span>
+              {result === "correct" && "Correct!"}
+              {result === "accent" && (
+                <>
+                  Correct. Mind the accent: <b lang={lang}>{q.answer}</b>
+                </>
+              )}
+              {result === "wrong" && (
+                <>
+                  The answer is <b lang={lang}>{q.answer}</b>
+                </>
+              )}
+            </span>
           </span>
           <button type="button" className="btn" onClick={next} autoFocus>
             {i + 1 >= questions.length ? "See results" : "Next"}

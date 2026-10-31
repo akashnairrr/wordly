@@ -2,8 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { allForms } from "../../src/lib/words";
 import { bestEntry, toWord, wordId } from "./normalize";
-import { tokenize } from "../../src/lib/words";
-import { findExamples, type SentenceIndex } from "./sentences";
+import { findExamples, indexSentences } from "./sentences";
 import { formOfTargets, isLemmaEntry, type RawEntry } from "./wiktionary";
 
 // Trimmed from real kaikki.org entries.
@@ -99,19 +98,35 @@ test("wordId is ASCII and keeps accented words distinct", () => {
 });
 
 test("examples: whole-word match, spread across forms", () => {
-  const pairs = [
+  const index = indexSentences([
     { text: "Tengo un perro pequeño en casa.", en: "I have a small dog at home." },
     { text: "Tengo hambre ahora mismo, de verdad.", en: "I'm really hungry right now." },
     { text: "¿Tienes tiempo para hablar hoy?", en: "Do you have time to talk today?" },
     { text: "Contengo la respiración bajo el agua.", en: "I hold my breath underwater." },
-  ];
-  const byToken = new Map<string, number[]>();
-  pairs.forEach((p, i) => tokenize(p.text).forEach((t) => byToken.set(t, [...(byToken.get(t) ?? []), i])));
-  const index: SentenceIndex = { pairs, byToken };
+  ]);
   const got = findExamples(index, ["tengo", "tienes"], 2).map((e) => e.text);
   assert.equal(got.length, 2);
   assert.ok(got.some((t) => t.startsWith("¿Tienes")), "second form gets a sentence before the first form's second one");
   assert.ok(!got.some((t) => t.startsWith("Contengo")));
+});
+
+test("examples: everyday sentences beat rare words, names, numbers and borrowed spellings", () => {
+  const common = ["yo", "tengo", "hambre", "tú", "quieres", "comer", "algo", "como", "una", "es", "el", "de", "tom", "años", "están", "cabra"];
+  const everyday = { rank: new Map(common.map((w, i) => [w, i] as [string, number])), commonCutoff: common.length, personal: new Set(["yo", "tú"]) };
+  const index = indexSentences(
+    [
+      { text: "El ornitorrinco come insectos acuáticos.", en: "The platypus eats aquatic insects." },
+      { text: "Tom quiere comer algo.", en: "Tom wants to eat something." },
+      { text: "Tengo 17 años y quiero comer.", en: "I'm 17 and want to eat." },
+      { text: "Están como una cabra.", en: "They're crazy." },
+      { text: "¿Quieres comer algo?", en: "Do you want to eat something?", audio: "x.mp3" },
+    ],
+    everyday,
+  );
+  const [first, second] = findExamples(index, ["comer", "como", "come"], 5, new Set(["como"])).map((e) => e.text);
+  assert.equal(first, "¿Quieres comer algo?");
+  assert.notEqual(second, "Están como una cabra.");
+  assert.equal(findExamples(index, ["comer", "como", "come"], 5, new Set(["como"])).at(-1)?.text, "Están como una cabra.");
 });
 
 test("bestEntry: most real meanings wins; letter names don't count; verbs win ties", () => {

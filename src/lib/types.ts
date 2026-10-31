@@ -26,11 +26,26 @@ export type Person = "1s" | "2s" | "3s" | "1p" | "2p" | "3p";
 
 export type Conjugation = Partial<Record<Mood, Partial<Record<Tense, Partial<Record<Person, string>>>>>>;
 
+/** Meaning of one word in an example sentence. */
+export interface TokenGloss {
+  /** Short English meaning. */
+  g: string;
+  /** Dictionary form, when the word is inflected (vamos → ir). */
+  l?: string;
+}
+
 export interface Example {
   text: string;
   en: string;
   /** Human recording of `text` (Tatoeba), when one exists. */
   audio?: string;
+  /**
+   * Word-by-word meanings, aligned with the letter runs of `text` (tokenize()). null for the word being taught,
+   * words inside a phrase, and words with no known meaning.
+   */
+  words?: (TokenGloss | null)[];
+  /** Multi-word phrases as [first token, end token (exclusive), meaning]. */
+  phrases?: [number, number, string][];
 }
 
 export interface WordForms {

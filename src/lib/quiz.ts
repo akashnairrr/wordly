@@ -26,6 +26,8 @@ export interface QuizQuestion {
   /** Multiple choice options; absent for typed answers. */
   options?: string[];
   answer: string;
+  /** Spoken once the learner has answered: the correct answer in the target language, in context. */
+  reveal: { text: string; audio?: string };
 }
 
 export type Grade = "correct" | "accent" | "wrong";
@@ -76,12 +78,16 @@ const samePos = (w: Word, pool: IndexEntry[]) => {
   return same.length >= 3 ? same : pool.filter((p) => p.id !== w.id);
 };
 
+const sayWord = (w: Word) => ({ text: w.lemma, audio: w.audio });
+const sayForm = (w: Word, form: string) => ({ text: form, audio: form === w.lemma ? w.audio : w.formAudio?.[form] });
+
 const meaning: Maker = (w, { pool, rng }) => ({
   kind: "meaning",
   wordId: w.id,
   prompt: w.lemma,
   options: options(w.glosses[0], samePos(w, pool).map((p) => p.gloss), rng),
   answer: w.glosses[0],
+  reveal: sayWord(w),
 });
 
 const reverse: Maker = (w, { pool, rng }) => ({
@@ -90,6 +96,7 @@ const reverse: Maker = (w, { pool, rng }) => ({
   prompt: w.glosses[0],
   options: options(w.lemma, samePos(w, pool).map((p) => p.lemma), rng),
   answer: w.lemma,
+  reveal: sayWord(w),
 });
 
 // Spoken alone, one-letter words (a, y, o, e) sound like letter names or homophones — not fair to test by ear.
@@ -105,12 +112,13 @@ const listenSelect: Maker = (w, { pool, rng }) =>
         audioUrl: w.audio,
         options: options(w.lemma, samePos(w, pool).map((p) => p.lemma), rng),
         answer: w.lemma,
+        reveal: sayWord(w),
       }
     : undefined;
 
 const listenType: Maker = (w) =>
     audible(w)
-    ? { kind: "listen-type", wordId: w.id, prompt: "", audio: w.lemma, audioUrl: w.audio, hint: w.glosses[0], answer: w.lemma }
+    ? { kind: "listen-type", wordId: w.id, prompt: "", audio: w.lemma, audioUrl: w.audio, hint: w.glosses[0], answer: w.lemma, reveal: sayWord(w) }
     : undefined;
 
 const conjugation: Maker = (w, { lang, rng }) => {
@@ -126,12 +134,23 @@ const conjugation: Maker = (w, { lang, rng }) => {
     hint: `${lang.personLabels[c.person]} · ${c.label}`,
     options: options(c.form, cells.map((x) => x.form), rng),
     answer: c.form,
+    reveal: sayForm(w, c.form),
   };
 };
 
 const gender: Maker = (w, { lang }) => {
   if (w.gender !== "m" && w.gender !== "f") return;
-  return { kind: "gender", wordId: w.id, prompt: w.lemma, hint: w.glosses[0], options: [lang.articles.m, lang.articles.f], answer: lang.articles[w.gender] };
+  const article = lang.articles[w.gender];
+  return {
+    kind: "gender",
+    wordId: w.id,
+    prompt: w.lemma,
+    hint: w.glosses[0],
+    options: [lang.articles.m, lang.articles.f],
+    answer: article,
+    // Article + noun together, so the gender is heard with the word (no recording exists for the pair).
+    reveal: { text: `${article} ${w.lemma}` },
+  };
 };
 
 const genderedForm: Maker = (w, { rng }) => {
@@ -144,6 +163,7 @@ const genderedForm: Maker = (w, { rng }) => {
     hint: w.glosses[0],
     options: options(f.feminine, [w.lemma, f.masculinePlural, f.femininePlural, f.plural].filter(Boolean) as string[], rng),
     answer: f.feminine,
+    reveal: sayForm(w, f.feminine),
   };
 };
 
@@ -163,6 +183,8 @@ const cloze: Maker = (w, { pool, rng }) => {
       hint: ex.en,
       options: options(answer, others.filter((o) => o.toLowerCase() !== answer.toLowerCase()), rng),
       answer,
+      // The whole sentence with the gap filled, in the native recording when Tatoeba has one.
+      reveal: { text: ex.text, audio: ex.audio },
     };
   }
 };

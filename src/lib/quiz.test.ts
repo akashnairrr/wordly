@@ -71,10 +71,11 @@ test("quiz: cloze blanks the word and keeps its original casing as the answer", 
   const q = buildQuiz([word], pool, es, { speech: false, rng: seeded(3) }).find((x) => x.kind === "cloze")!;
   assert.equal(q.prompt, "_____ un perro es bonito.");
   assert.equal(q.answer, "Tener");
+  assert.equal(q.reveal.text, "Tener un perro es bonito.", "after answering, the full sentence is spoken");
 });
 
 test("grading: typed answers tolerate case, punctuation and missing accents", () => {
-  const q: QuizQuestion = { kind: "listen-type", wordId: "x", prompt: "", answer: "está" };
+  const q: QuizQuestion = { kind: "listen-type", wordId: "x", prompt: "", answer: "está", reveal: { text: "está" } };
   assert.equal(grade(q, " Está! "), "correct");
   assert.equal(grade(q, "esta"), "accent");
   assert.equal(grade(q, "eso"), "wrong");
@@ -133,4 +134,16 @@ test("review: weakest and least recently seen first; lessons mix in 1 old word p
   const plan = planLesson(pool, p, 10);
   assert.deepEqual(plan.review.map((w) => w.id), ["bueno", "casa"]);
   assert.ok(!plan.fresh.some((w) => p.learned[w.id as keyof typeof p.learned]));
+});
+
+test("quiz: every question speaks the answer in the target language afterwards", () => {
+  for (let seed = 1; seed < 30; seed++) {
+    for (const q of buildQuiz([tener, casa, bueno], pool, es, { speech: true, rng: seeded(seed) })) {
+      assert.ok(q.reveal.text, `${q.kind}: nothing to say`);
+      if (q.kind === "meaning") assert.equal(q.reveal.text, q.prompt, "meaning: speak the Spanish word, not the English gloss");
+      if (q.kind === "gender") assert.equal(q.reveal.text, "la casa");
+      if (q.kind === "gendered-form") assert.equal(q.reveal.text, "buena");
+      if (q.kind === "conjugation" || q.kind.startsWith("listen") || q.kind === "reverse") assert.equal(q.reveal.text, q.answer);
+    }
+  }
 });

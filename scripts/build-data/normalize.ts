@@ -29,7 +29,7 @@ const skip = (tags: string[] = []) => tags.some((t) => SKIP_TAGS.has(t));
 const LETTER_NAME = /^the name of the .*letter|\bgreek letter\b/i;
 
 /** All learner-relevant meanings of an entry, in Wiktionary order. */
-function usableGlosses(e: RawEntry): string[] {
+export function usableGlosses(e: RawEntry): string[] {
   const out: string[] = [];
   for (const s of e.senses ?? []) {
     if (!isLemmaSense(s) || skip(s.tags)) continue;

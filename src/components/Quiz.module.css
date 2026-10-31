@@ -129,6 +129,12 @@
   border-radius: var(--radius-sm);
 }
 
+.feedbackText {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .good {
   background: var(--tint-soft);
 }
