@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { allForms } from "../../src/lib/words";
 import { bestEntry, toWord, wordId } from "./normalize";
-import { findExamples, indexSentences } from "./sentences";
+import { findExamples, indexSentences, literalness } from "./sentences";
 import { formOfTargets, isLemmaEntry, type RawEntry } from "./wiktionary";
 
 // Trimmed from real kaikki.org entries.
@@ -112,7 +112,12 @@ test("examples: whole-word match, spread across forms", () => {
 
 test("examples: everyday sentences beat rare words, names, numbers and borrowed spellings", () => {
   const common = ["yo", "tengo", "hambre", "tú", "quieres", "comer", "algo", "como", "una", "es", "el", "de", "tom", "años", "están", "cabra"];
-  const everyday = { rank: new Map(common.map((w, i) => [w, i] as [string, number])), commonCutoff: common.length, personal: new Set(["yo", "tú"]) };
+  const everyday = {
+    rank: new Map(common.map((w, i) => [w, i] as [string, number])),
+    commonCutoff: common.length,
+    basicCutoff: common.length,
+    droppedPronouns: new Set(["yo", "tú"]),
+  };
   const index = indexSentences(
     [
       { text: "El ornitorrinco come insectos acuáticos.", en: "The platypus eats aquatic insects." },
@@ -127,6 +132,21 @@ test("examples: everyday sentences beat rare words, names, numbers and borrowed 
   assert.equal(first, "¿Quieres comer algo?");
   assert.notEqual(second, "Están como una cabra.");
   assert.equal(findExamples(index, ["comer", "como", "come"], 5, new Set(["como"])).at(-1)?.text, "Están como una cabra.");
+});
+
+test("examples: dropped pronouns, drama and loose translations lose to plain literal speech", () => {
+  const dict: Record<string, string> = { tengo: "I have", hambre: "hunger", yo: "I", me: "me", puedes: "can", decir: "to say", la: "the", hora: "hour", qué: "what" };
+  const everyday = { rank: new Map(), commonCutoff: Infinity, basicCutoff: Infinity, droppedPronouns: new Set(["yo"]), gloss: (t: string) => dict[t] };
+  const index = indexSentences(
+    [
+      { text: "¡Yo tengo hambre!", en: "I'm hungry!" },
+      { text: "Tengo hambre.", en: "I'm hungry." },
+    ],
+    everyday,
+  );
+  assert.equal(findExamples(index, ["tengo"], 1)[0].text, "Tengo hambre.");
+  assert.equal(literalness(["me", "puedes", "decir", "la", "hora"], "What time is it?", (t) => dict[t]), 0);
+  assert.equal(literalness(["qué", "hora"], "What hour?", (t) => dict[t]), 1);
 });
 
 test("bestEntry: most real meanings wins; letter names don't count; verbs win ties", () => {

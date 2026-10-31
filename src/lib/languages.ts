@@ -12,8 +12,8 @@ export interface Language {
   sample: string;
   /** Shown on the home screen. */
   greeting: string;
-  /** Personal pronouns; example sentences using them read as conversation (data pipeline). */
-  personal: string[];
+  /** Subject pronouns native speakers usually leave out; sentences spelling them out sound stiff (data pipeline). */
+  droppedPronouns: string[];
   /** Definite articles by gender, used for noun display and gender quizzes. */
   articles: { m: string; f: string };
   personLabels: Record<Person, string>;
@@ -30,7 +30,7 @@ export const LANGUAGES: Record<string, Language> = {
     ttsLocales: ["es-ES", "es-MX", "es-US", "es"],
     sample: "Hola, ¿qué tal? Estoy aprendiendo español.",
     greeting: "¡Hola!",
-    personal: ["yo", "tú", "usted", "me", "te", "nos", "mi", "tu", "nosotros", "ustedes", "vosotros"],
+    droppedPronouns: ["yo", "tú", "usted", "ustedes", "nosotros", "nosotras", "vosotros", "vosotras"],
     articles: { m: "el", f: "la" },
     personLabels: {
       "1s": "yo",

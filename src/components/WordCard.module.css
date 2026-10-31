@@ -152,15 +152,11 @@
   padding: 1px 0;
 }
 
+/* The word being taught: the one solid pill among the pastel ones. */
 .unit mark {
-  background: none;
-  color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
   font-weight: 700;
-  text-decoration: underline;
-  text-decoration-color: var(--rock);
-  text-decoration-thickness: 3px;
-  text-underline-offset: 4px;
-  padding: 1px 2px;
 }
 
 .en {

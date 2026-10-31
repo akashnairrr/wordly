@@ -18,6 +18,9 @@ import { formOfTargets, isLemmaEntry, streamEntries, type RawEntry } from "./wik
 
 const ROOT = join(import.meta.dirname, "../..");
 
+// Plain-object dictionaries: "constructor" is a Spanish word too.
+const own = <T>(dict: Record<string, T>, key: string) => (Object.hasOwn(dict, key) ? dict[key] : undefined);
+
 async function main() {
   const { values } = parseArgs({ options: { lang: { type: "string", default: "es" } } });
   const lang = values.lang!;
@@ -33,7 +36,7 @@ async function main() {
 
   const overrides = OVERRIDES[lang] ?? {};
   const posOverride = (word: string) => {
-    const o = overrides[word];
+    const o = own(overrides, word);
     return o && "pos" in o ? o : undefined;
   };
 
@@ -63,7 +66,7 @@ async function main() {
   // A surface form's lemma (tengo → tener). A spelling that is itself a lemma wins (casa = house, not a form of
   // casar) unless overrides.ts says otherwise.
   const resolve = (form: string) => {
-    const o = overrides[form];
+    const o = own(overrides, form);
     const lemma = o && "lemma" in o ? o.lemma : lemmas.has(form) ? form : formOf.get(form)?.find((t) => lemmas.has(t));
     return lemma && lemmas.has(lemma) ? lemma : undefined;
   };
@@ -94,10 +97,37 @@ async function main() {
   const wordAudio = await loadWordRecordings(sources.lingualibre, files.wordAudioIndex);
   const sentenceAudio = loadSentenceRecordings(files.sentenceAudio);
 
+  // Short meaning of any word: shown under example sentences, and used to prefer literal translations.
+  const pickedLemmas = new Set(picked.map((w) => w.lemma));
+  const curated = SHORT_GLOSSES[lang] ?? {};
+  // Like resolve(), but a spelling that's also a form of a top word means that word (dije → decir, not "locket").
+  const glossLemma = (token: string) => {
+    const o = own(overrides, token);
+    if (o && "lemma" in o) return o.lemma;
+    if (lemmas.has(token) && pickedLemmas.has(token)) return token;
+    return formOf.get(token)?.find((t) => pickedLemmas.has(t)) ?? resolve(token);
+  };
+  const glossCache = new Map<string, TokenGloss | undefined>();
+  const lookup = (token: string) => {
+    if (!glossCache.has(token)) {
+      const lemma = glossLemma(token);
+      let g = own(curated, token);
+      if (!g && lemma) {
+        const { entry, glosses } = entryFor(lemma);
+        const all = glosses ?? (entry ? usableGlosses(entry) : []);
+        const best = translatingGloss(all) ?? all[0];
+        g = best && shortGloss(best);
+      }
+      glossCache.set(token, g ? { g, ...(lemma && lemma !== token && { l: lemma }) } : undefined);
+    }
+    return glossCache.get(token);
+  };
+
   console.log("Matching example sentences…");
-  // Everyday-speech scoring: rank = spoken frequency; the top ~3,000 forms count as common vocabulary.
+  // Everyday-speech scoring: rank = spoken frequency; the top ~1,000 forms are the basics, ~3,000 common vocabulary.
   const rank = new Map(freq.map((f, i) => [f, i] as [string, number]));
-  const everyday = { rank, commonCutoff: 3000, personal: new Set(LANGUAGES[lang]?.personal ?? []) };
+  const droppedPronouns = new Set(LANGUAGES[lang]?.droppedPronouns ?? []);
+  const everyday = { rank, commonCutoff: 3000, basicCutoff: 1000, droppedPronouns, gloss: (t: string) => lookup(t)?.g };
   const sentences = loadSentences(files.sentences, sources.sentences.file, sentenceAudio, everyday);
   // A spelling shared by several words (como: "like" and "I eat") is a weak match for all but its own lemma.
   const owners = new Map<string, number>();
@@ -118,6 +148,7 @@ async function main() {
         byFrequency(allForms(w)),
         MAX_EXAMPLES,
         new Set(allForms(w).filter((f) => f !== w.lemma && (owners.get(f.toLowerCase()) ?? 0) > 1).map((f) => f.toLowerCase())),
+        droppedPronouns.has(w.lemma),
       ),
     };
   });
@@ -146,30 +177,6 @@ async function main() {
   }
 
   // Word-by-word meanings for every example sentence.
-  const pickedLemmas = new Set(picked.map((w) => w.lemma));
-  const curated = SHORT_GLOSSES[lang] ?? {};
-  // Like resolve(), but a spelling that's also a form of a top word means that word (dije → decir, not "locket").
-  const glossLemma = (token: string) => {
-    const o = overrides[token];
-    if (o && "lemma" in o) return o.lemma;
-    if (lemmas.has(token) && pickedLemmas.has(token)) return token;
-    return formOf.get(token)?.find((t) => pickedLemmas.has(t)) ?? resolve(token);
-  };
-  const glossCache = new Map<string, TokenGloss | undefined>();
-  const lookup = (token: string) => {
-    if (!glossCache.has(token)) {
-      const lemma = glossLemma(token);
-      let g = curated[token];
-      if (!g && lemma) {
-        const { entry, glosses } = entryFor(lemma);
-        const all = glosses ?? (entry ? usableGlosses(entry) : []);
-        const best = translatingGloss(all) ?? all[0];
-        g = best && shortGloss(best);
-      }
-      glossCache.set(token, g ? { g, ...(lemma && lemma !== token && { l: lemma }) } : undefined);
-    }
-    return glossCache.get(token);
-  };
   const words: Word[] = withExamples.map((w) => {
     const own = new Set(allForms(w).map((f) => f.toLowerCase()));
     return { ...w, examples: w.examples.map((e) => glossExample(e, (t) => own.has(t), lookup, phrases)) };

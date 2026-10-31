@@ -7,14 +7,18 @@ interface SentenceStats {
   tokens: string[];
   /** Tokens outside the common spoken vocabulary. */
   rare: string[];
-  /** Capitalised words mid-sentence: almost always names ("Tom", "María"). */
+  /** Tokens outside the basic vocabulary a beginner meets first. */
+  uncommon: string[];
+  /** Names ("Tom", "María"): capitalised mid-sentence, or anywhere with no dictionary meaning. */
   names: number;
   digits: boolean;
-  /** Questions and exclamations: the shape of conversation. */
-  talk: boolean;
   question: boolean;
-  /** Addresses or talks about the speaker/listener (yo, tú, usted…). */
-  personal: boolean;
+  /** Exclamations in Tatoeba are mostly film drama ("¡Fuera de mi casa!"). */
+  exclamation: boolean;
+  /** Spells out a subject pronoun speakers would drop ("Yo tengo uno" instead of "Tengo uno"). */
+  stiff: boolean;
+  /** Share of known words whose meaning shows up in the English (0–1): low = loose, hard-to-follow translation. */
+  literal: number;
 }
 
 export interface SentenceIndex {
@@ -28,22 +32,49 @@ export interface Everyday {
   rank: Map<string, number>;
   /** Words ranked below this count as rare. */
   commonCutoff: number;
-  /** Personal pronouns of the language (from the language registry). */
-  personal: Set<string>;
+  /** Words ranked below this are past the basics. */
+  basicCutoff: number;
+  /** Subject pronouns of the language that speakers usually drop (from the language registry). */
+  droppedPronouns: Set<string>;
+  /** Short English meaning of a token, to check that the translation follows the sentence. */
+  gloss?: (token: string) => string | undefined;
 }
 
-const NO_EVERYDAY: Everyday = { rank: new Map(), commonCutoff: Infinity, personal: new Set() };
+const NO_EVERYDAY: Everyday = { rank: new Map(), commonCutoff: Infinity, basicCutoff: Infinity, droppedPronouns: new Set() };
 
-function measure(text: string, everyday: Everyday): SentenceStats {
+// Prefix match so "hungry" counts for hambre → "hunger" and "eats" for "to eat".
+const stem = (w: string) => w.slice(0, 4);
+
+/** How much of the sentence the English translates word for word. Unknown words (names…) don't count. */
+export function literalness(tokens: string[], en: string, gloss: Everyday["gloss"]): number {
+  if (!gloss) return 1;
+  const english = new Set(tokenize(en).map(stem));
+  let known = 0;
+  let hits = 0;
+  for (const t of tokens) {
+    const g = gloss(t);
+    if (!g) continue;
+    known++;
+    if (tokenize(g).some((w) => w !== "to" && english.has(stem(w)))) hits++;
+  }
+  return known ? hits / known : 1;
+}
+
+function measure(text: string, en: string, everyday: Everyday): SentenceStats {
   const tokens = tokenize(text);
+  const rankOf = (t: string) => everyday.rank.get(t) ?? Infinity;
+  const isName = (m: RegExpExecArray) =>
+    /\s/.test(text[m.index - 1] ?? "") || (!!everyday.gloss && !everyday.gloss(m[0].toLowerCase()));
   return {
     tokens,
-    rare: tokens.filter((t) => (everyday.rank.get(t) ?? Infinity) >= everyday.commonCutoff),
-    names: text.match(/(?<=\s)\p{Lu}\p{Ll}+/gu)?.length ?? 0,
+    rare: tokens.filter((t) => rankOf(t) >= everyday.commonCutoff),
+    uncommon: tokens.filter((t) => rankOf(t) >= everyday.basicCutoff),
+    names: [...text.matchAll(/\p{Lu}\p{Ll}+/gu)].filter(isName).length,
     digits: /\d/.test(text),
-    talk: /[¿?¡!]/.test(text),
     question: /[¿?]/.test(text),
-    personal: tokens.some((t) => everyday.personal.has(t)),
+    exclamation: /[¡!]/.test(text),
+    stiff: tokens.some((t) => everyday.droppedPronouns.has(t)),
+    literal: literalness(tokens, en, everyday.gloss),
   };
 }
 
@@ -67,7 +98,7 @@ export function loadSentences(zipPath: string, file: string, recordings: Map<str
 }
 
 export function indexSentences(pairs: Example[], everyday: Everyday = NO_EVERYDAY): SentenceIndex {
-  const stats = pairs.map((p) => measure(p.text, everyday));
+  const stats = pairs.map((p) => measure(p.text, p.en, everyday));
   const byToken = new Map<string, number[]>();
   stats.forEach((s, i) => {
     for (const t of new Set(s.tokens)) {
@@ -79,20 +110,26 @@ export function indexSentences(pairs: Example[], everyday: Everyday = NO_EVERYDA
   return { pairs, stats, byToken };
 }
 
-/** Lower is better: short, all-common-word, conversational sentences with a native recording win. */
-function everydayScore(s: SentenceStats, form: string, audio: boolean, ambiguous: boolean): number {
+/** Lower is better: short, basic-word, literally translated sentences with a native recording win. */
+function everydayScore(s: SentenceStats, form: string, audio: boolean, ambiguous: boolean, pronoun: boolean): number {
   const n = s.tokens.length;
   const rare = s.rare.filter((t) => t !== form).length;
+  const uncommon = s.uncommon.filter((t) => t !== form).length;
   return (
     rare * 6 +
+    uncommon * 2 +
     s.names * 12 +
     (s.digits ? 6 : 0) +
-    (n < 3 ? 4 : n > 8 ? (n - 8) * 2 : 0) +
+    // Three to six words is easy to read, say and remember.
+    (n < 3 ? 4 : n > 6 ? (n - 6) * 3 : 0) +
     (audio ? 0 : 4) +
     // Matched only through a spelling another word owns (comer ← "como"): probably the other word.
-    (ambiguous ? 30 : 0) -
-    (s.talk ? 2 : 0) -
-    (s.personal ? 2 : 0)
+    (ambiguous ? 30 : 0) +
+    // Teaching the pronoun itself is the one place spelling it out is right.
+    (s.stiff && !pronoun ? 4 : 0) +
+    (s.exclamation ? 2 : 0) +
+    Math.round((1 - s.literal) * 12) -
+    (s.question ? 2 : 0)
   );
 }
 
@@ -106,14 +143,21 @@ const QUESTION_PENALTY = 6;
 /**
  * Picks up to `max` everyday sentences containing the word. `forms` should be most-spoken first: only the most
  * frequent few are considered, and repeated use of one form is penalised so a verb shows several conjugations.
- * `ambiguous` holds forms shared with other words, whose matches are deprioritised.
+ * `ambiguous` holds forms shared with other words, whose matches are deprioritised; `pronoun` is set when the word
+ * taught is itself a subject pronoun.
  */
-export function findExamples(index: SentenceIndex, forms: string[], max: number, ambiguous: Set<string> = new Set()): Example[] {
+export function findExamples(
+  index: SentenceIndex,
+  forms: string[],
+  max: number,
+  ambiguous: Set<string> = new Set(),
+  pronoun = false,
+): Example[] {
   const best = new Map<number, { score: number; form: string }>();
   [...new Set(forms.map((f) => f.toLowerCase()))].slice(0, FORMS_CONSIDERED).forEach((form, rank) => {
     for (const i of index.byToken.get(form) ?? []) {
       // Rarer forms rank slightly lower so the commonest ones get the best sentences.
-      const score = everydayScore(index.stats[i], form, !!index.pairs[i].audio, ambiguous.has(form)) + rank;
+      const score = everydayScore(index.stats[i], form, !!index.pairs[i].audio, ambiguous.has(form), pronoun) + rank;
       if (score < (best.get(i)?.score ?? Infinity)) best.set(i, { score, form });
     }
   });
