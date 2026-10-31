@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# raw downloaded datasets
+/data-raw/
+
+# local Claude/preview config
+/.claude/

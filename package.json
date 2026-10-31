@@ -1,12 +1,14 @@
 {
-  "name": "wordwerk",
+  "name": "wordly",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "data": "tsx scripts/build-data/index.ts",
+    "test": "tsx --test \"scripts/**/*.test.ts\" \"src/**/*.test.ts\""
   },
   "dependencies": {
     "next": "16.4.3",
@@ -19,6 +21,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   },
   "packageManager": "pnpm@11.25.0"

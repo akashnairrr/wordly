@@ -1,0 +1,139 @@
+.quiz {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.steps {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+
+.steps i {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.steps .done {
+  background: var(--accent);
+}
+
+.steps .current {
+  background: var(--tint);
+}
+
+.prompt {
+  font-family: var(--font-display), Georgia, serif;
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+  font-weight: 800;
+  font-size: clamp(30px, 7vw, 44px);
+  line-height: 1.15;
+  color: var(--accent);
+  margin-top: 12px;
+  text-wrap: balance;
+}
+
+.sentence {
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin-top: 12px;
+  text-wrap: pretty;
+}
+
+.hint {
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
+.listen {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 4px;
+}
+
+.play {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.option {
+  text-align: left;
+  min-height: 56px;
+  background: var(--bg);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 17px;
+}
+
+.option:not(:disabled):hover {
+  border-color: var(--accent);
+}
+
+.option:disabled {
+  cursor: default;
+}
+
+.right {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.wrong {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.dim {
+  opacity: 0.5;
+}
+
+.typeRow {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.feedback {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+}
+
+.good {
+  background: var(--tint-soft);
+}
+
+.bad {
+  background: var(--danger-soft);
+  color: var(--danger);
+}

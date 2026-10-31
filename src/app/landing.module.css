@@ -1,0 +1,65 @@
+.hero {
+  padding: calc(40px + env(safe-area-inset-top)) 0 32px;
+}
+
+.logo {
+  font-family: var(--font-display), Georgia, serif;
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+  font-weight: 800;
+  font-size: 28px;
+  color: var(--accent);
+  margin: 0 0 40px;
+}
+
+.title {
+  font-size: clamp(44px, 10vw, 80px);
+  font-weight: 800;
+  color: var(--accent);
+  max-width: 12ch;
+}
+
+.lede {
+  font-size: 19px;
+  max-width: 50ch;
+  margin: 20px 0 0;
+  color: var(--muted);
+}
+
+.languages {
+  background: var(--tint);
+  color: var(--on-tint);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.languages ul {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 18px;
+}
+
+.pick {
+  font-size: 22px;
+}
+
+.language {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  padding: 18px 20px;
+  text-decoration: none;
+}
+
+.language .display {
+  font-size: 30px;
+  color: var(--accent);
+}
+
+.languages :global(.small),
+.languages :global(.small) a {
+  color: var(--on-tint);
+}

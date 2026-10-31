@@ -1,0 +1,63 @@
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.count {
+  font-family: var(--font-display), Georgia, serif;
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+  font-weight: 800;
+  font-size: 36px;
+  line-height: 1;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.range {
+  width: 100%;
+  margin: 14px 0 6px;
+  accent-color: var(--accent);
+}
+
+.scale {
+  display: grid;
+  grid-template-columns: 4fr 4fr 3fr;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.scale span:nth-child(2) {
+  text-align: center;
+}
+
+.scale span:last-child {
+  text-align: right;
+}
+
+.scale .on {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.notice {
+  font-size: 15px;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin: 14px 0 0;
+}
+
+.easy {
+  background: var(--tint-soft);
+}
+
+.moderate {
+  background: var(--tint);
+  color: var(--on-tint);
+}
+
+.hard {
+  background: var(--danger-soft);
+  color: var(--danger);
+}

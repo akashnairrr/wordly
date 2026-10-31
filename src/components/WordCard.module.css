@@ -1,0 +1,132 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px 16px;
+}
+
+.head > div {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.lemma {
+  font-size: clamp(40px, 9vw, 60px);
+  font-weight: 800;
+  color: var(--accent);
+  overflow-wrap: break-word;
+}
+
+.article {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.ipa {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.section {
+  border-top: 1px solid var(--line);
+  margin-top: 22px;
+  padding-top: 18px;
+}
+
+.title {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.glosses {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.glosses li + li {
+  margin-top: 4px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.table tr:last-child th,
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.table th {
+  font-weight: 400;
+  color: var(--muted);
+  width: 42%;
+  padding-right: 12px;
+}
+
+.formCell {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.form {
+  font-weight: 600;
+}
+
+.examples {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.example {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.example:last-child {
+  border-bottom: 0;
+}
+
+.example mark {
+  background: none;
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--rock);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 3px;
+}
+
+.exampleText {
+  font-size: 19px;
+  font-weight: 500;
+}
