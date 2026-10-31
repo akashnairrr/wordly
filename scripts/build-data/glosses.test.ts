@@ -36,7 +36,12 @@ test("glossExample: longest phrase wins, the taught word keeps no gloss, unknown
 });
 
 test("glossExample: phrases containing the taught word are not grouped", () => {
-  const ex = glossExample({ text: "Por favor.", en: "Please." }, (t) => t === "favor", () => ({ g: "x" }), new Map([["por favor", "please"]]));
+  const ex = glossExample(
+    { text: "Por favor.", en: "Please." },
+    (t) => t === "favor",
+    () => ({ g: "x" }),
+    new Map([["por favor", "please"]]),
+  );
   assert.equal(ex.phrases, undefined);
   assert.deepEqual(ex.words, [{ g: "x" }, null]);
 });

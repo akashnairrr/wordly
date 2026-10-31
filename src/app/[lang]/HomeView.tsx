@@ -1,25 +1,32 @@
 "use client";
 
-import Link from "next/link";
+import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
+import Paper from "@mui/material/Paper";
+import Skeleton from "@mui/material/Skeleton";
+import Typography from "@mui/material/Typography";
+import NextLink from "next/link";
+import { ButtonLink, TextLink } from "@/components/links";
 import { SessionSizePicker } from "@/components/SessionSizePicker";
+import { StatLine } from "@/components/StatLine";
 import { getLanguage } from "@/lib/languages";
 import { planLesson, reviewQueue } from "@/lib/session";
 import { useIndex } from "@/lib/useIndex";
 import { useProgress } from "@/lib/useProgress";
-import styles from "./home.module.css";
+import { C, displayFont, num, RADIUS } from "@/theme";
 
 export function HomeView({ lang }: { lang: string }) {
   const language = getLanguage(lang);
   const [progress, update] = useProgress(lang);
   const { index, error } = useIndex(lang);
 
-  if (error) return <p className="empty">Could not load words: {error}</p>;
+  if (error) return <Box sx={{ textAlign: "center", py: 5 }}>Could not load words: {error}</Box>;
   if (!progress || !index)
     return (
-      <div className={styles.loading} aria-busy>
-        <div className="skeleton" style={{ minHeight: 260 }} />
-        <div className="skeleton" />
-      </div>
+      <Box aria-busy sx={{ display: "grid", gap: 2, mt: 3 }}>
+        <Skeleton sx={{ minHeight: 260 }} />
+        <Skeleton sx={{ minHeight: 120 }} />
+      </Box>
     );
 
   const learned = Object.values(progress.learned);
@@ -29,102 +36,129 @@ export function HomeView({ lang }: { lang: string }) {
   const { fresh, review } = planLesson(index, progress, size);
   const studied = reviewQueue(index, progress);
   const weak = reviewQueue(index, progress, true);
+  const heroTitle = { fontSize: "clamp(34px, 7vw, 54px)", fontWeight: 800, maxWidth: "14ch" } as const;
 
   return (
     <>
-      <section className={`block block-accent ${styles.hero}`}>
-        <p className={styles.greeting} lang={lang}>
+      <Box
+        component="section"
+        sx={{ mt: 3, p: "clamp(24px, 6vw, 44px)", bgcolor: C.tintSoft, boxShadow: `inset 0 0 0 2px ${C.rock}`, borderRadius: `${RADIUS}px` }}
+      >
+        <Box component="p" lang={lang} sx={{ ...displayFont, fontSize: 22, m: "0 0 8px" }}>
           {language.greeting}
-        </p>
+        </Box>
         {fresh.length ? (
           <>
-            <h1 className={styles.heroTitle}>
+            <Typography variant="h1" sx={heroTitle}>
               {fresh.length} new {language.name} words are waiting.
-            </h1>
-            <p className={styles.heroText}>
+            </Typography>
+            <Box component="p" sx={{ mt: 1.75, mb: 3, maxWidth: "46ch", opacity: 0.9 }}>
               See each one in real sentences, hear a native speaker, then take a short quiz.
               {review.length > 0 && ` ${review.length} word${review.length > 1 ? "s" : ""} you've studied will come back too.`}
-            </p>
-            <Link href={`/${lang}/session/`} className="btn">
-              Start lesson
-            </Link>
+            </Box>
+            <ButtonLink href={`/${lang}/session/`}>Start lesson</ButtonLink>
           </>
         ) : (
           <>
-            <h1 className={styles.heroTitle}>You&apos;ve studied every word on the list.</h1>
-            <Link href={`/${lang}/session/?mode=review`} className="btn">
-              Review studied words
-            </Link>
+            <Typography variant="h1" sx={{ ...heroTitle, mb: 3 }}>
+              You&apos;ve studied every word on the list.
+            </Typography>
+            <ButtonLink href={`/${lang}/session/?mode=review`}>Review studied words</ButtonLink>
           </>
         )}
-      </section>
+      </Box>
 
-      <dl className="statline">
-        <div>
-          <dt>Words studied</dt>
-          <dd className="display num">
-            {learned.length}
-            <span className={styles.of}>/{index.length}</span>
-          </dd>
-        </div>
-        <div>
-          <dt>Day streak</dt>
-          <dd className="display num">{progress.streak}</dd>
-        </div>
-        <div>
-          <dt>Quiz accuracy</dt>
-          <dd className="display num">{answers ? `${Math.round((correct / answers) * 100)}%` : "–"}</dd>
-        </div>
-      </dl>
+      <StatLine
+        stats={[
+          {
+            label: "Words studied",
+            value: (
+              <>
+                {learned.length}
+                <Box component="span" sx={{ fontSize: "0.45em", color: C.muted, fontWeight: 500 }}>
+                  /{index.length}
+                </Box>
+              </>
+            ),
+          },
+          { label: "Day streak", value: progress.streak },
+          { label: "Quiz accuracy", value: answers ? `${Math.round((correct / answers) * 100)}%` : "–" },
+        ]}
+      />
 
-      <div className={styles.grid}>
-        <section className="surface">
+      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 2, mt: 3 }}>
+        <Paper component="section" variant="outlined" sx={{ p: 2.5 }}>
           <SessionSizePicker value={size} onChange={(n) => update((p) => ({ ...p, settings: { ...p.settings, sessionSize: n } }))} />
-        </section>
+        </Paper>
 
-        <section className={`block block-tint ${styles.review}`}>
-          <h2 className={styles.reviewTitle}>Review</h2>
+        <Paper component="section" variant="outlined" sx={{ p: 3, display: "flex", flexDirection: "column", borderTop: `6px solid ${C.rock}` }}>
+          <Typography variant="h2" sx={{ fontSize: 30 }}>
+            Review
+          </Typography>
           {studied.length ? (
             <>
-              <p className={styles.reviewText}>
-                <b className="num">{studied.length}</b> studied · <b className="num">{weak.length}</b> need practice
-              </p>
-              <div className={styles.reviewActions}>
-                <Link href={`/${lang}/session/?mode=review`} className="btn">
-                  Review studied words
-                </Link>
+              <Box component="p" sx={{ mt: 1, mb: 2.25 }}>
+                <Box component="b" sx={num}>
+                  {studied.length}
+                </Box>{" "}
+                studied ·{" "}
+                <Box component="b" sx={num}>
+                  {weak.length}
+                </Box>{" "}
+                need practice
+              </Box>
+              <Box sx={{ mt: "auto", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.75 }}>
+                <ButtonLink href={`/${lang}/session/?mode=review`}>Review studied words</ButtonLink>
                 {weak.length > 0 && (
-                  <Link href={`/${lang}/session/?mode=review&filter=practice`} className={styles.reviewLink}>
+                  <TextLink href={`/${lang}/session/?mode=review&filter=practice`} sx={{ fontWeight: 600 }}>
                     Practise weak words only
-                  </Link>
+                  </TextLink>
                 )}
-              </div>
+              </Box>
             </>
           ) : (
-            <p className={styles.reviewText}>Words you study come back here for revision, weakest first.</p>
+            <Box component="p" sx={{ mt: 1, mb: 2.25 }}>
+              Words you study come back here for revision, weakest first.
+            </Box>
           )}
-        </section>
-      </div>
+        </Paper>
+      </Box>
 
       {fresh.length > 0 && (
-        <section className="section">
-          <div className="section-head">
-            <h2>Next up</h2>
-            <Link href={`/${lang}/words/`} className="small">
+        <Box component="section" sx={{ mt: 5 }}>
+          <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 1.5, mb: 1.75 }}>
+            <Typography variant="h2">Next up</Typography>
+            <TextLink href={`/${lang}/words/`} sx={{ fontSize: 14, color: C.muted }}>
               All {index.length} words
-            </Link>
-          </div>
-          <ul className={styles.upcoming}>
+            </TextLink>
+          </Box>
+          <Box component="ul" sx={{ listStyle: "none", p: 0, m: 0, display: "flex", flexWrap: "wrap", gap: 1.25 }}>
             {fresh.map((w) => (
               <li key={w.id}>
-                <Link href={`/${lang}/words/${w.id}/`} className={styles.word}>
-                  <b lang={lang}>{w.lemma}</b>
-                  <span>{w.gloss}</span>
-                </Link>
+                <Chip
+                  component={NextLink}
+                  href={`/${lang}/words/${w.id}/`}
+                  clickable
+                  variant="outlined"
+                  sx={{ borderWidth: 1.5, minHeight: 44, "&:hover": { borderColor: C.venice }, "& .MuiChip-label": { px: 2 } }}
+                  label={
+                    <Box component="span" sx={{ display: "inline-flex", alignItems: "baseline", gap: 1 }}>
+                      <Box component="b" lang={lang} sx={{ color: C.venice, fontSize: 17 }}>
+                        {w.lemma}
+                      </Box>
+                      <Box
+                        component="span"
+                        sx={{ fontSize: 14, maxWidth: "22ch", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                      >
+                        {w.gloss}
+                      </Box>
+                    </Box>
+                  }
+                />
               </li>
             ))}
-          </ul>
-        </section>
+          </Box>
+        </Box>
       )}
     </>
   );

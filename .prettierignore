@@ -1,0 +1,7 @@
+# Generated
+public/data/
+out/
+.next/
+data-raw/
+next-env.d.ts
+pnpm-lock.yaml

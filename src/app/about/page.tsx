@@ -1,4 +1,8 @@
-import Link from "next/link";
+import Box from "@mui/material/Box";
+import Link from "@mui/material/Link";
+import Typography from "@mui/material/Typography";
+import { TextLink } from "@/components/links";
+import { C, column } from "@/theme";
 
 export const metadata = { title: "Data sources & credits · Wordly" };
 
@@ -7,8 +11,8 @@ const SOURCES = [
     title: "Word frequency",
     body: (
       <>
-        <a href="https://github.com/hermitdave/FrequencyWords">FrequencyWords</a> by Hermit Dave, built from{" "}
-        <a href="https://opus.nlpl.eu/OpenSubtitles.php">OpenSubtitles 2018</a>. CC BY-SA 4.0.
+        <Link href="https://github.com/hermitdave/FrequencyWords">FrequencyWords</Link> by Hermit Dave, built from{" "}
+        <Link href="https://opus.nlpl.eu/OpenSubtitles.php">OpenSubtitles 2018</Link>. CC BY-SA 4.0.
       </>
     ),
   },
@@ -16,8 +20,8 @@ const SOURCES = [
     title: "Meanings, forms and conjugations",
     body: (
       <>
-        <a href="https://en.wiktionary.org/">Wiktionary</a> contributors, via the <a href="https://kaikki.org/">kaikki.org</a> extract (Tatu Ylonen,
-        Wiktextract). CC BY-SA 4.0 and GFDL.
+        <Link href="https://en.wiktionary.org/">Wiktionary</Link> contributors, via the <Link href="https://kaikki.org/">kaikki.org</Link> extract
+        (Tatu Ylonen, Wiktextract). CC BY-SA 4.0 and GFDL.
       </>
     ),
   },
@@ -25,8 +29,8 @@ const SOURCES = [
     title: "Word recordings",
     body: (
       <>
-        Native speakers on <a href="https://lingualibre.org/">Lingua Libre</a> and Wiktionary, hosted on{" "}
-        <a href="https://commons.wikimedia.org/">Wikimedia Commons</a>. CC BY-SA (per recording).
+        Native speakers on <Link href="https://lingualibre.org/">Lingua Libre</Link> and Wiktionary, hosted on{" "}
+        <Link href="https://commons.wikimedia.org/">Wikimedia Commons</Link>. CC BY-SA (per recording).
       </>
     ),
   },
@@ -34,8 +38,8 @@ const SOURCES = [
     title: "Example sentences and their recordings",
     body: (
       <>
-        <a href="https://tatoeba.org/">Tatoeba</a> contributors, via <a href="https://www.manythings.org/anki/">manythings.org</a>. Sentences CC BY 2.0
-        FR; recordings under each contributor&apos;s licence.
+        <Link href="https://tatoeba.org/">Tatoeba</Link> contributors, via <Link href="https://www.manythings.org/anki/">manythings.org</Link>.
+        Sentences CC BY 2.0 FR; recordings under each contributor&apos;s licence.
       </>
     ),
   },
@@ -43,24 +47,32 @@ const SOURCES = [
 
 export default function About() {
   return (
-    <main className="container">
-      <p style={{ margin: "28px 0 0" }}>
-        <Link href="/">← Wordly</Link>
-      </p>
-      <h1 style={{ fontSize: "clamp(34px, 7vw, 48px)", margin: "16px 0 8px", color: "var(--accent)" }}>Data sources & credits</h1>
-      <p className="muted">Wordly is built entirely on open data. Thank you to everyone who contributed to these projects.</p>
-      <ul style={{ listStyle: "none", padding: 0, margin: "24px 0", borderTop: "1px solid var(--line)" }}>
+    <Box component="main" sx={{ ...column, pb: 6 }}>
+      <Box component="p" sx={{ mt: 3.5, mb: 0 }}>
+        <TextLink href="/">← Wordly</TextLink>
+      </Box>
+      <Typography variant="h1" sx={{ mt: 2, mb: 1 }}>
+        Data sources & credits
+      </Typography>
+      <Box component="p" sx={{ color: C.muted }}>
+        Wordly is built entirely on open data. Thank you to everyone who contributed to these projects.
+      </Box>
+      <Box component="ul" sx={{ listStyle: "none", p: 0, my: 3, borderTop: `1px solid ${C.line}` }}>
         {SOURCES.map((s) => (
-          <li key={s.title} style={{ padding: "16px 0", borderBottom: "1px solid var(--line)" }}>
-            <h2 style={{ fontSize: 20, marginBottom: 6 }}>{s.title}</h2>
-            <p style={{ margin: 0 }}>{s.body}</p>
-          </li>
+          <Box component="li" key={s.title} sx={{ py: 2, borderBottom: `1px solid ${C.line}` }}>
+            <Typography variant="h3" sx={{ mb: 0.75 }}>
+              {s.title}
+            </Typography>
+            <Box component="p" sx={{ m: 0 }}>
+              {s.body}
+            </Box>
+          </Box>
         ))}
-      </ul>
-      <p className="small">
+      </Box>
+      <Typography variant="body2">
         The generated word data is a derivative of these sources and is shared under CC BY-SA 4.0. Where no recording exists, pronunciation uses your
         browser&apos;s built-in text-to-speech.
-      </p>
-    </main>
+      </Typography>
+    </Box>
   );
 }

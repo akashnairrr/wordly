@@ -4,14 +4,19 @@ import { tokenize } from "../../src/lib/words";
 
 /** Dictionary gloss → a few words that fit under a word: "to have; to possess" → "to have". */
 export function shortGloss(gloss: string): string {
-  let s = gloss.split(";")[0].replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+  let s = gloss
+    .split(";")[0]
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (s.length > 22 && s.includes(",")) s = s.split(",")[0].trim();
   if (s.length > 24) s = s.slice(0, 24).replace(/\s+\S*$/, "") + "…";
   return s;
 }
 
 // Wiktionary often explains function words instead of translating them ("Used as an emphatic pronoun…").
-const DEFINITIONAL = /^(used|response|see|a reflexive|the name|substitutes|first-person|second-person|second person|third-person|indicates|expresses|denotes|refers)\b/i;
+const DEFINITIONAL =
+  /^(used|response|see|a reflexive|the name|substitutes|first-person|second-person|second person|third-person|indicates|expresses|denotes|refers)\b/i;
 
 /** First gloss that translates rather than explains, if any. */
 export function translatingGloss(glosses: string[]): string | undefined {
@@ -42,7 +47,7 @@ export function glossExample(
 ): Example {
   const tokens = tokenize(example.text);
   const spans: [number, number, string][] = [];
-  for (let i = 0; i < tokens.length; ) {
+  for (let i = 0; i < tokens.length;) {
     let matched = 0;
     for (let n = Math.min(MAX_PHRASE, tokens.length - i); n >= 2; n--) {
       const run = tokens.slice(i, i + n);

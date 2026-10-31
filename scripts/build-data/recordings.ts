@@ -62,7 +62,16 @@ export async function loadWordRecordings(prefix: string, cachePath: string): Pro
     const rest = f.name.slice(prefix.length).replace(/\.\w+$/, "");
     const cut = rest.lastIndexOf("-");
     if (cut <= 0) return [];
-    return [{ speaker: rest.slice(0, cut), word: rest.slice(cut + 1).replace(/_/g, " ").toLowerCase(), url: f.url }];
+    return [
+      {
+        speaker: rest.slice(0, cut),
+        word: rest
+          .slice(cut + 1)
+          .replace(/_/g, " ")
+          .toLowerCase(),
+        url: f.url,
+      },
+    ];
   });
   const perSpeaker = new Map<string, number>();
   for (const p of parsed) perSpeaker.set(p.speaker, (perSpeaker.get(p.speaker) ?? 0) + 1);

@@ -1,10 +1,18 @@
 "use client";
 
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Slider from "@mui/material/Slider";
 import { useState } from "react";
 import { DIFFICULTY_INFO, difficulty, MAX_SIZE, MIN_SIZE, type Difficulty } from "@/lib/session";
-import styles from "./SessionSizePicker.module.css";
+import { C, displayFont, num } from "@/theme";
 
-const ORDER: Difficulty[] = ["easy", "moderate", "hard"];
+const ORDER: Difficulty[] = ["Easy", "Moderate", "Hard"];
+const NOTICE: Record<Difficulty, object> = {
+  Easy: { bgcolor: C.tintSoft },
+  Moderate: { bgcolor: C.warningSoft, color: C.warning },
+  Hard: { bgcolor: C.dangerSoft, color: C.danger },
+};
 
 export function SessionSizePicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   const level = difficulty(value);
@@ -14,39 +22,35 @@ export function SessionSizePicker({ value, onChange }: { value: number; onChange
   function change(n: number) {
     const next = difficulty(n);
     if (ORDER.indexOf(next) > ORDER.indexOf(level)) setWarning(next);
-    else if (next === "easy") setWarning(null);
+    else if (next === "Easy") setWarning(null);
     onChange(n);
   }
 
   return (
     <div>
-      <div className={styles.head}>
-        <label htmlFor="session-size" className="label">
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 1.5 }}>
+        <Box component="span" id="session-size" sx={{ fontSize: 14, fontWeight: 600, color: C.muted }}>
           New words per lesson
-        </label>
-        <span className={styles.count}>{value}</span>
-      </div>
-      <input
-        id="session-size"
-        className={styles.range}
-        type="range"
+        </Box>
+        <Box component="span" sx={{ ...displayFont, ...num, fontSize: 36, lineHeight: 1, color: C.venice }}>
+          {value}
+        </Box>
+      </Box>
+      <Slider
+        aria-labelledby="session-size"
         min={MIN_SIZE}
         max={MAX_SIZE}
+        step={1}
         value={value}
-        onChange={(e) => change(Number(e.target.value))}
-        aria-valuetext={`${value} words, ${DIFFICULTY_INFO[level].label}`}
+        onChange={(_, n) => change(n as number)}
+        getAriaValueText={(n) => `${n} words, ${DIFFICULTY_INFO[difficulty(n)].label}`}
+        sx={{ mt: 1, mb: 0.25 }}
       />
-      <div className={styles.scale} aria-hidden>
-        {ORDER.map((d, n) => (
-          <span key={d} className={d === level ? styles.on : undefined}>
-            {["5–8", "9–12", "13–15"][n]} {DIFFICULTY_INFO[d].label.toLowerCase()}
-          </span>
-        ))}
-      </div>
-      <p role="status" className={`${styles.notice} ${styles[warning ?? level]}`}>
-        {warning ? <b>Getting harder: {DIFFICULTY_INFO[warning].label.toLowerCase()}. </b> : null}
+
+      <Alert role="status" sx={{ mt: 1.75, ...NOTICE[warning ?? level] }}>
+        {warning ? <b>{DIFFICULTY_INFO[warning].label}. </b> : null}
         {DIFFICULTY_INFO[warning ?? level].note}
-      </p>
+      </Alert>
     </div>
   );
 }

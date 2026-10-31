@@ -1,8 +1,15 @@
 "use client";
 
-import { useRef } from "react";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
+import { useState } from "react";
+import { C } from "@/theme";
 
-/** A trigger button plus a native modal <dialog> (focus trapping and Esc handled by the browser). */
+/** A trigger button plus a modal confirmation (focus trapping and Esc handled by MUI). */
 export function ConfirmDialog({
   trigger,
   title,
@@ -16,31 +23,34 @@ export function ConfirmDialog({
   confirmLabel: string;
   onConfirm: () => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const [open, setOpen] = useState(false);
   return (
     <>
-      <button type="button" className="btn btn-quiet" onClick={() => ref.current?.showModal()}>
+      <Button variant="text" onClick={() => setOpen(true)}>
         {trigger}
-      </button>
-      <dialog ref={ref} aria-labelledby="confirm-title">
-        <h2 id="confirm-title" style={{ fontSize: 24 }}>
+      </Button>
+      <Dialog open={open} onClose={() => setOpen(false)} aria-labelledby="confirm-title">
+        <DialogTitle id="confirm-title" variant="h2" sx={{ fontSize: 24 }}>
           {title}
-        </h2>
-        <p className="muted">{body}</p>
-        <form method="dialog" className="row" style={{ justifyContent: "flex-end" }}>
-          <button className="btn btn-outline" value="cancel" autoFocus>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: C.muted }}>{body}</DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button variant="outlined" onClick={() => setOpen(false)} autoFocus>
             Cancel
-          </button>
-          <button
-            className="btn"
-            value="confirm"
-            style={{ background: "var(--danger)", color: "var(--surface)" }}
-            onClick={onConfirm}
+          </Button>
+          <Button
+            color="error"
+            onClick={() => {
+              setOpen(false);
+              onConfirm();
+            }}
           >
             {confirmLabel}
-          </button>
-        </form>
-      </dialog>
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
