@@ -6,11 +6,13 @@ import Button from "@mui/material/Button"
 import Toolbar from "@mui/material/Toolbar"
 import NextLink from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { switchLanguagePath } from "@/lib/languages"
+import { useState } from "react"
+import { getLanguage } from "@/lib/languages"
 import { C, columnSx, displayFontSx, Z } from "@/theme"
 
 // Small phones (iPhone SE, 320px): logo, three links and the language flag only just fit.
 const TINY = "@media (max-width: 359.95px)"
+import { ConfirmModal } from "./confirm-dialog"
 import { LanguageSelect } from "./language-select"
 
 interface HeaderProps {
@@ -20,6 +22,9 @@ interface HeaderProps {
 export function Header({ lang }: HeaderProps) {
   const router = useRouter()
   const path = usePathname().replace(/\/?$/, "/")
+  // Language picked in the switcher, waiting for confirmation.
+  const [switchTo, setSwitchTo] = useState<string | null>(null)
+  const inLesson = path.startsWith(`/${lang}/session`)
   const links = [
     { href: `/${lang}/`, label: "Today", active: path === `/${lang}/` || path.startsWith(`/${lang}/session`) },
     { href: `/${lang}/words/`, label: "Words", active: path.startsWith(`/${lang}/words`) },
@@ -80,8 +85,22 @@ export function Header({ lang }: HeaderProps) {
             </Button>
           ))}
         </Box>
-        {/* Switching keeps you on the same page (Words, Progress…) in the other language. */}
-        <LanguageSelect size="small" value={lang} onChange={(to) => router.push(switchLanguagePath(path, to))} />
+        <LanguageSelect size="small" value={lang} onChange={(to) => to !== lang && setSwitchTo(to)} />
+        {switchTo && (
+          <ConfirmModal
+            open
+            onClose={() => setSwitchTo(null)}
+            title={`Switch to ${getLanguage(switchTo).name}?`}
+            body={
+              <>
+                You&apos;ll go to the {getLanguage(switchTo).name} home page. Your {getLanguage(lang).name} progress
+                stays saved{inLesson ? ", but the lesson you're in now won't be" : ""}.
+              </>
+            }
+            confirmLabel={`Switch to ${getLanguage(switchTo).nativeName}`}
+            onConfirm={() => router.push(`/${switchTo}/`)}
+          />
+        )}
       </Toolbar>
     </AppBar>
   )
