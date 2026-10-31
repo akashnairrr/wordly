@@ -27,7 +27,7 @@ export function Header({ lang }: HeaderProps) {
   const inLesson = path.startsWith(`/${lang}/session`)
   const links = [
     { href: `/${lang}/`, label: "Today", active: path === `/${lang}/` || path.startsWith(`/${lang}/session`) },
-    { href: `/${lang}/words/`, label: "Words", active: path.startsWith(`/${lang}/words`) },
+    { href: `/${lang}/words/`, label: "Words", active: path.startsWith(`/${lang}/word`) },
     { href: `/${lang}/progress/`, label: "Progress", active: path.startsWith(`/${lang}/progress`) },
   ]
   return (

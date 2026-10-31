@@ -23,6 +23,7 @@ import { recordSession, skipWord } from "@/lib/progress"
 import { buildQuiz, type QuizQuestion } from "@/lib/quiz"
 import { pickNewWords, planLesson, reviewQueue } from "@/lib/session"
 import type { Word } from "@/lib/types"
+import { wordHref } from "@/lib/words"
 import { useIndex } from "@/hooks/use-index"
 import { useProgress } from "@/hooks/use-progress"
 import { C, displayFontSx, numSx, RADIUS, Z } from "@/theme"
@@ -304,7 +305,7 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
             <li key={word.id}>
               <ListItemButton
                 component={NextLink}
-                href={`/${lang}/words/${word.id}/`}
+                href={wordHref(lang, word.id)}
                 sx={{
                   justifyContent: "space-between",
                   gap: 1.5,

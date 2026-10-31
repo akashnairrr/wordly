@@ -2,6 +2,7 @@
 
 import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
+import LinearProgress from "@mui/material/LinearProgress"
 import Paper from "@mui/material/Paper"
 import Skeleton from "@mui/material/Skeleton"
 import Typography from "@mui/material/Typography"
@@ -10,7 +11,9 @@ import { ButtonLink, TextLink } from "@/components/links"
 import { SessionSizePicker } from "@/components/session-size-picker"
 import { StatLine } from "@/components/stat-line"
 import { getLanguage } from "@/lib/languages"
+import { currentLevel, levelLabel, levelProgress } from "@/lib/levels"
 import { planLesson, reviewQueue } from "@/lib/session"
+import { wordHref } from "@/lib/words"
 import { useIndex } from "@/hooks/use-index"
 import { useProgress } from "@/hooks/use-progress"
 import { C, displayFontSx, numSx, RADIUS } from "@/theme"
@@ -40,6 +43,10 @@ export function HomeView({ lang }: HomeViewProps) {
   const { fresh, review } = planLesson(index, progress, size)
   const studied = reviewQueue(index, progress)
   const weak = reviewQueue(index, progress, true)
+  const level = currentLevel(index, progress)
+  const levelDone = levelProgress(index, progress, level)
+  // First lesson of a level after the first: say so, like moving up a grade.
+  const newLevel = level.n > 1 && levelDone.done === 0
   const heroTitle = { fontSize: "clamp(34px, 7vw, 54px)", fontWeight: 800, maxWidth: "14ch" } as const
 
   return (
@@ -54,9 +61,40 @@ export function HomeView({ lang }: HomeViewProps) {
           borderRadius: `${RADIUS}px`,
         }}
       >
-        <Box component="p" lang={lang} sx={{ ...displayFontSx, fontSize: 22, m: "0 0 8px" }}>
-          {language.greeting}
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 1.5,
+            mb: 1,
+          }}
+        >
+          <Box component="p" lang={lang} sx={{ ...displayFontSx, fontSize: 22, m: 0 }}>
+            {language.greeting}
+          </Box>
+          <Box sx={{ minWidth: 200, flex: "0 1 260px" }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, fontSize: 14 }}>
+              <Box component="span" sx={{ fontWeight: 600 }}>
+                {levelLabel(level)}
+              </Box>
+              <Box component="span" sx={{ ...numSx, color: C.muted }}>
+                {levelDone.done}/{levelDone.total}
+              </Box>
+            </Box>
+            <LinearProgress
+              value={(levelDone.done / Math.max(1, levelDone.total)) * 100}
+              aria-label={`${levelLabel(level)} progress`}
+              sx={{ mt: 0.75, bgcolor: C.surface }}
+            />
+          </Box>
         </Box>
+        {newLevel && (
+          <Box component="p" role="status" sx={{ m: "4px 0 12px", fontWeight: 600 }}>
+            New level: {level.name}. The words get more specific from here.
+          </Box>
+        )}
         {fresh.length ? (
           <>
             <Typography variant="h1" sx={heroTitle}>
@@ -155,7 +193,7 @@ export function HomeView({ lang }: HomeViewProps) {
               <li key={w.id}>
                 <Chip
                   component={NextLink}
-                  href={`/${lang}/words/${w.id}/`}
+                  href={wordHref(lang, w.id)}
                   clickable
                   variant="outlined"
                   sx={{

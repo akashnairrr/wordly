@@ -12,7 +12,7 @@ export interface Sources {
 }
 
 /** How many lemmas to keep, by spoken frequency. */
-export const TOP_N = 2000
+export const TOP_N = 5000
 export const MAX_EXAMPLES = 5
 
 /** Tatoeba's list of sentences with human recordings (all languages). */

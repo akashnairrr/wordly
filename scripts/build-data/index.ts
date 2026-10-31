@@ -48,6 +48,7 @@ async function main() {
   // All teachable entries per spelling; bestEntry() picks one (de = preposition, not the letter).
   const lemmas = new Map<string, RawEntry[]>()
   const formOf = new Map<string, string[]>()
+  const gerunds = new Set<string>()
   const addLemma = (e: RawEntry) => {
     const pos = mapPos(e.pos)
     // An override with its own glosses may target an entry Wiktionary only lists as a form (mi → mío).
@@ -63,6 +64,7 @@ async function main() {
       addLemma(e)
       const targets = formOfTargets(e).map(key)
       if (targets.length) formOf.set(key(e.word), [...(formOf.get(key(e.word)) ?? []), ...targets])
+      if (e.senses?.some((s) => s.form_of && s.tags?.includes("gerund"))) gerunds.add(key(e.word))
     }
   )
 
@@ -88,14 +90,21 @@ async function main() {
     if (capitalised.has(k) && upperCase(k).length) return upperCase(k)
     return sameCase(k).length ? sameCase(k) : (lemmas.get(k) ?? [])
   }
+  // A spelling that is itself a word usually means that word (casa = house, not a form of casar), but a gerund is
+  // always its verb: nadando → nadar, not the heraldic adjective "naiant".
+  const gerundOf = (form: string) => (gerunds.has(form) ? formOf.get(form)?.find((t) => lemmas.has(t)) : undefined)
   const resolve = (form: string) => {
     const o = own(overrides, form)
     const lemma =
-      o && "lemma" in o
-        ? key(o.lemma)
-        : (capitalised.has(form) && upperCase(form).length) || sameCase(form).length
-          ? form
-          : (formOf.get(form)?.find((t) => lemmas.has(t)) ?? (lemmas.has(form) ? form : undefined))
+      o && "skip" in o
+        ? undefined
+        : o && "lemma" in o
+          ? key(o.lemma)
+          : capitalised.has(form) && upperCase(form).length
+            ? form
+            : sameCase(form).length
+              ? (gerundOf(form) ?? form)
+              : (formOf.get(form)?.find((t) => lemmas.has(t)) ?? (lemmas.has(form) ? form : undefined))
     return lemma && lemmas.has(lemma) ? lemma : undefined
   }
   // The entry used for a lemma. Part-of-speech overrides are keyed by lemma, so they also apply when reached via a

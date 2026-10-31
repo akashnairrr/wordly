@@ -19,11 +19,12 @@ import { ButtonLink, wordsSearchKey } from "@/components/links"
 import { ToneChip } from "@/components/tone-chip"
 import { STATUS_LABEL, STATUS_TONE } from "@/components/word-status-bar"
 import { POS_LABELS } from "@/lib/languages"
+import { LEVELS, levelLabel, levelOf, levelProgress } from "@/lib/levels"
 import { wordStatus, type WordStatus } from "@/lib/session"
 import type { Pos } from "@/lib/types"
 import { useIndex } from "@/hooks/use-index"
 import { useProgress } from "@/hooks/use-progress"
-import { stripAccents } from "@/lib/words"
+import { stripAccents, wordHref } from "@/lib/words"
 import { C, displayFontSx, numSx } from "@/theme"
 
 const PAGE = 100
@@ -38,8 +39,8 @@ const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
 ]
 const POS_FILTERS: Pos[] = ["noun", "verb", "adj", "adv", "pron", "prep", "conj", "det", "intj"]
 
-/** Mirrors the filters into the URL (?q=&filter=&pos=) so going back to this page restores them. */
-function syncUrl(next: { q?: string; filter?: StatusFilter; pos?: Pos | "all" }) {
+/** Mirrors the filters into the URL (?q=&filter=&level=&pos=) so going back to this page restores them. */
+function syncUrl(next: { q?: string; filter?: StatusFilter; level?: string; pos?: Pos | "all" }) {
   const params = new URLSearchParams(window.location.search)
   for (const [key, value] of Object.entries(next)) {
     if (value && value !== "all") params.set(key, value)
@@ -63,6 +64,9 @@ export function WordsView({ lang }: WordsViewProps) {
     STATUS_FILTERS.find((f) => f.id === params.get("filter"))?.id ?? "all"
   )
   const [pos, setPos] = useState<Pos | "all">(POS_FILTERS.find((p) => p === params.get("pos")) ?? "all")
+  const [level, setLevel] = useState(
+    LEVELS.find((l) => String(l.n) === params.get("level")) ? params.get("level")! : "all"
+  )
   const [query, setQuery] = useState(params.get("q") ?? "")
   const [shown, setShown] = useState(PAGE)
 
@@ -73,7 +77,7 @@ export function WordsView({ lang }: WordsViewProps) {
     } catch {
       // Storage blocked: the back link shows the plain list.
     }
-  }, [lang, query, status, pos])
+  }, [lang, query, status, level, pos])
 
   if (error) return <EmptyState text={`Could not load words: ${error}`} />
   if (!index || !progress) return <Skeleton sx={{ mt: 3, minHeight: 480 }} />
@@ -85,6 +89,7 @@ export function WordsView({ lang }: WordsViewProps) {
   const list = index.filter(
     (w) =>
       (status === "all" || statuses.get(w.id) === status) &&
+      (level === "all" || String(levelOf(w.rank).n) === level) &&
       (pos === "all" || w.pos === pos) &&
       (!q || fold(w.lemma).includes(q) || fold(w.gloss).includes(q))
   )
@@ -170,7 +175,33 @@ export function WordsView({ lang }: WordsViewProps) {
           </ToggleButton>
         ))}
       </ToggleButtonGroup>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, mt: 1.5, mb: 0.5 }}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.25, mt: 1.5, mb: 0.5 }}>
+        <Box component="label" htmlFor="level" sx={{ fontSize: 14, color: C.muted }}>
+          Level
+        </Box>
+        <TextField
+          select
+          size="small"
+          id="level"
+          value={level}
+          onChange={(e) => {
+            setLevel(e.target.value)
+            syncUrl({ level: e.target.value })
+            setShown(PAGE)
+          }}
+          slotProps={{ select: { native: true } }}
+          sx={{ "& .MuiOutlinedInput-root": { minHeight: 36, borderRadius: 999 } }}
+        >
+          <option value="all">All levels</option>
+          {LEVELS.map((l) => {
+            const { done, total } = levelProgress(index, progress, l)
+            return (
+              <option key={l.n} value={String(l.n)}>
+                {levelLabel(l)} ({done}/{total})
+              </option>
+            )
+          })}
+        </TextField>
         <Box component="label" htmlFor="pos" sx={{ fontSize: 14, color: C.muted }}>
           Part of speech
         </Box>
@@ -206,7 +237,8 @@ export function WordsView({ lang }: WordsViewProps) {
               setQuery("")
               setStatus("all")
               setPos("all")
-              syncUrl({ q: "", filter: "all", pos: "all" })
+              setLevel("all")
+              syncUrl({ q: "", filter: "all", level: "all", pos: "all" })
             }}
           >
             Clear filters
@@ -220,7 +252,7 @@ export function WordsView({ lang }: WordsViewProps) {
               <li key={w.id}>
                 <ListItemButton
                   component={NextLink}
-                  href={`/${lang}/words/${w.id}/`}
+                  href={wordHref(lang, w.id)}
                   sx={{
                     gap: 1.5,
                     py: 1.5,

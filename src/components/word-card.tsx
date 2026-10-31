@@ -5,6 +5,7 @@ import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
 import { useEffect } from "react"
 import { getLanguage, POS_LABELS } from "@/lib/languages"
+import { levelLabel, levelOf } from "@/lib/levels"
 import type { Word } from "@/lib/types"
 import { C, numSx } from "@/theme"
 import { ConjugationTable } from "./conjugation-table"
@@ -77,6 +78,7 @@ export function WordCard({ word, lang, autoSpeak = false, badge }: WordCardProps
             {badge && <ToneChip tone="studied" label={badge} />}
             <span>{POS_LABELS[word.pos]}</span>
             {word.gender && <span>· {GENDER_LABEL[word.gender]}</span>}
+            <span>· {levelLabel(levelOf(word.rank))}</span>
             <Box component="span" sx={numSx}>
               · #{word.rank}
             </Box>
