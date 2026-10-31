@@ -18,4 +18,4 @@ function getJson<T>(path: string): Promise<T> {
 }
 
 export const fetchIndex = (lang: string) => getJson<IndexEntry[]>(`${lang}/index.json`)
-export const fetchWord = (lang: string, id: string) => getJson<Word>(`${lang}/words/${id}.json`)
+export const fetchWord = (lang: string, id: string) => getJson<Word>(`${lang}/words/${encodeURIComponent(id)}.json`)

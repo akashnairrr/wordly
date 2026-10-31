@@ -34,7 +34,8 @@ function savedSearch(lang: string): string {
   }
 }
 
-const noSubscribe = () => () => {}
+/** For useSyncExternalStore over browser storage: read once after hydration, no live updates. */
+export const noSubscribe = () => () => {}
 
 interface WordsBackLinkProps {
   lang: string

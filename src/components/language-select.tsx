@@ -24,7 +24,16 @@ export function LanguageSelect({ value, onChange, size = "large", sx }: Language
       onChange={(e) => onChange(e.target.value)}
       size={large ? "medium" : "small"}
       inputProps={{ "aria-label": "Language" }}
+      // An empty value (landing page, first visit) shows a prompt instead of a language.
+      displayEmpty
       renderValue={(code) => {
+        if (!code) {
+          return (
+            <Box component="span" sx={{ color: C.muted, fontSize: large ? 20 : 14 }}>
+              Pick a language
+            </Box>
+          )
+        }
         const l = getLanguage(code)
         return (
           <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: large ? 1.5 : 1 }}>
