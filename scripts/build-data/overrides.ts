@@ -1,4 +1,4 @@
-import type { Pos } from "../../src/lib/types";
+import type { Pos } from "../../src/lib/types"
 
 /**
  * Hand fixes for frequent spellings the heuristics resolve wrongly.
@@ -7,7 +7,7 @@ import type { Pos } from "../../src/lib/types";
  * - `{ lemma }`: count the spelling as a form of this lemma (son → ser, not "tone").
  * Add entries when spot-checking the generated top words.
  */
-export type Override = { pos: Pos; glosses?: string[] } | { lemma: string };
+export type Override = { pos: Pos; glosses?: string[] } | { lemma: string }
 
 export const OVERRIDES: Record<string, Record<string, Override>> = {
   es: {
@@ -44,7 +44,7 @@ export const OVERRIDES: Record<string, Record<string, Override>> = {
     cree: { lemma: "creer" },
     crees: { lemma: "creer" },
   },
-};
+}
 
 /**
  * Short meanings for the commonest little words, shown under them in example sentences. Wiktionary describes these
@@ -106,4 +106,4 @@ export const SHORT_GLOSSES: Record<string, Record<string, string>> = {
     del: "of the",
     al: "to the",
   },
-};
+}

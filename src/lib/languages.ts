@@ -1,24 +1,24 @@
-import type { Mood, Person, Pos, Tense } from "./types";
+import type { Mood, Person, Pos, Tense } from "./types"
 
 export interface Language {
-  code: string;
-  name: string;
-  nativeName: string;
-  /** ISO 3166 country whose flag represents the language (see components/Flag.tsx). */
-  country: string;
+  code: string
+  name: string
+  nativeName: string
+  /** ISO 3166 country whose flag represents the language (see components/flag.tsx). */
+  country: string
   /** BCP-47 locales accepted for text-to-speech, preferred first. */
-  ttsLocales: string[];
+  ttsLocales: [string, ...string[]]
   /** Short phrase for testing the selected voice. */
-  sample: string;
+  sample: string
   /** Shown on the home screen. */
-  greeting: string;
+  greeting: string
   /** Subject pronouns native speakers usually leave out; sentences spelling them out sound stiff (data pipeline). */
-  droppedPronouns: string[];
+  droppedPronouns: string[]
   /** Definite articles by gender, used for noun display and gender quizzes. */
-  articles: { m: string; f: string };
-  personLabels: Record<Person, string>;
+  articles: { m: string; f: string }
+  personLabels: Record<Person, string>
   /** Tenses shown in the conjugation table, in display order. */
-  tenses: { mood: Mood; tense: Tense; label: string }[];
+  tenses: { mood: Mood; tense: Tense; label: string }[]
 }
 
 export const LANGUAGES: Record<string, Language> = {
@@ -52,12 +52,12 @@ export const LANGUAGES: Record<string, Language> = {
       { mood: "imperative", tense: "negative", label: "Negative imperative" },
     ],
   },
-};
+}
 
 export function getLanguage(code: string): Language {
-  const lang = LANGUAGES[code];
-  if (!lang) throw new Error(`Unknown language: ${code}`);
-  return lang;
+  const lang = LANGUAGES[code]
+  if (!lang) throw new Error(`Unknown language: ${code}`)
+  return lang
 }
 
 export const POS_LABELS: Record<Pos, string> = {
@@ -72,4 +72,4 @@ export const POS_LABELS: Record<Pos, string> = {
   intj: "Interjection",
   num: "Number",
   other: "Other",
-};
+}

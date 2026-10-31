@@ -7,12 +7,17 @@ const FLAGS: Record<string, React.ReactNode> = {
       <rect y="0.5" width="3" height="1" fill="#F1BF00" />
     </>
   ),
-};
+}
+
+interface FlagProps {
+  country: string
+  height?: number
+}
 
 /** Decorative: always shown next to the language name, so hidden from screen readers. */
-export function Flag({ country, height = 24 }: { country: string; height?: number }) {
-  const flag = FLAGS[country];
-  if (!flag) return null;
+export function Flag({ country, height = 24 }: FlagProps) {
+  const flag = FLAGS[country]
+  if (!flag) return null
   return (
     <svg
       viewBox="0 0 3 2"
@@ -23,5 +28,5 @@ export function Flag({ country, height = 24 }: { country: string; height?: numbe
     >
       {flag}
     </svg>
-  );
+  )
 }

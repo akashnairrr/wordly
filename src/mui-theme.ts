@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { createTheme } from "@mui/material/styles";
-import { C, displayFont, RADIUS, RADIUS_SM } from "./theme";
+import { createTheme } from "@mui/material/styles"
+import { C, displayFontSx, RADIUS, RADIUS_SM } from "./theme"
 
-const heading = { ...displayFont, fontWeight: 700, lineHeight: 1.1, textWrap: "balance", color: C.venice } as const;
+const headingSx = { ...displayFontSx, fontWeight: 700, lineHeight: 1.1, textWrap: "balance", color: C.venice } as const
 
 export const theme = createTheme({
   palette: {
@@ -20,9 +20,9 @@ export const theme = createTheme({
     fontFamily: "var(--font-body), system-ui, sans-serif",
     body1: { fontSize: 17, lineHeight: 1.5 },
     body2: { fontSize: 14, color: C.muted },
-    h1: { ...heading, fontSize: "clamp(34px, 7vw, 48px)", fontWeight: 800 },
-    h2: { ...heading, fontSize: 26 },
-    h3: { ...heading, fontSize: 20 },
+    h1: { ...headingSx, fontSize: "clamp(34px, 7vw, 48px)", fontWeight: 800 },
+    h2: { ...headingSx, fontSize: 26 },
+    h3: { ...headingSx, fontSize: 20 },
     button: { textTransform: "none", fontWeight: 600, fontSize: 17 },
   },
   components: {
@@ -45,12 +45,19 @@ export const theme = createTheme({
       styleOverrides: {
         root: { borderRadius: 999, minHeight: 48, paddingInline: 22, gap: 8, "&.Mui-disabled": { opacity: 0.4 } },
         contained: { "&.Mui-disabled": { background: C.venice, color: C.merino } },
-        outlined: { borderWidth: 1.5, borderColor: "currentColor", "&:hover": { borderWidth: 1.5, background: C.tintSoft } },
+        outlined: {
+          borderWidth: 1.5,
+          borderColor: "currentColor",
+          "&:hover": { borderWidth: 1.5, background: C.tintSoft },
+        },
         text: { color: C.muted, paddingInline: 12, "&:hover": { color: C.venice, background: "transparent" } },
       },
     },
     MuiIconButton: { styleOverrides: { root: { "&:hover": { background: C.tintSoft } } } },
-    MuiLink: { defaultProps: { underline: "always" }, styleOverrides: { root: { color: "inherit", textUnderlineOffset: 3 } } },
+    MuiLink: {
+      defaultProps: { underline: "always" },
+      styleOverrides: { root: { color: "inherit", textUnderlineOffset: 3 } },
+    },
     MuiChip: {
       styleOverrides: {
         root: { fontSize: 13, fontWeight: 500, height: "auto", minHeight: 26, borderRadius: 999 },
@@ -60,7 +67,10 @@ export const theme = createTheme({
     },
     MuiLinearProgress: {
       defaultProps: { variant: "determinate" },
-      styleOverrides: { root: { height: 6, borderRadius: 999, background: C.line }, bar: { background: C.rock, borderRadius: 999 } },
+      styleOverrides: {
+        root: { height: 6, borderRadius: 999, background: C.line },
+        bar: { background: C.rock, borderRadius: 999 },
+      },
     },
     MuiSlider: { defaultProps: { color: "secondary" } },
     MuiOutlinedInput: {
@@ -77,7 +87,14 @@ export const theme = createTheme({
     // Segmented filters: plain labels, Rock Blue underline on the selected one.
     MuiToggleButtonGroup: {
       styleOverrides: {
-        root: { gap: 4, maxWidth: "100%", overflowX: "auto", scrollbarWidth: "none", borderBottom: `1px solid ${C.line}`, borderRadius: 0 },
+        root: {
+          gap: 4,
+          maxWidth: "100%",
+          overflowX: "auto",
+          scrollbarWidth: "none",
+          borderBottom: `1px solid ${C.line}`,
+          borderRadius: 0,
+        },
         grouped: { border: 0, borderRadius: 0, margin: 0, "&:not(:first-of-type)": { borderLeft: 0, marginLeft: 0 } },
       },
     },
@@ -93,7 +110,12 @@ export const theme = createTheme({
           whiteSpace: "nowrap",
           borderBottom: "3px solid transparent",
           "&:hover": { background: "transparent", color: C.venice },
-          "&.Mui-selected, &.Mui-selected:hover": { background: "transparent", color: C.venice, fontWeight: 600, borderBottomColor: C.rock },
+          "&.Mui-selected, &.Mui-selected:hover": {
+            background: "transparent",
+            color: C.venice,
+            fontWeight: 600,
+            borderBottomColor: C.rock,
+          },
         },
       },
     },
@@ -103,13 +125,22 @@ export const theme = createTheme({
         head: { fontWeight: 400 },
       },
     },
-    MuiDialog: { styleOverrides: { paper: { borderRadius: RADIUS, padding: 8, maxWidth: "min(420px, calc(100vw - 32px))" } } },
-    MuiBackdrop: { styleOverrides: { root: { "&:not(.MuiBackdrop-invisible)": { background: "rgb(22 88 123 / 0.35)" } } } },
+    MuiDialog: {
+      styleOverrides: { paper: { borderRadius: RADIUS, padding: 8, maxWidth: "min(420px, calc(100vw - 32px))" } },
+    },
+    MuiBackdrop: {
+      styleOverrides: { root: { "&:not(.MuiBackdrop-invisible)": { background: "rgb(22 88 123 / 0.35)" } } },
+    },
     MuiAlert: {
       defaultProps: { icon: false },
-      styleOverrides: { root: { borderRadius: RADIUS_SM, fontSize: 15, color: C.venice, background: C.tintSoft, padding: "6px 14px" } },
+      styleOverrides: {
+        root: { borderRadius: RADIUS_SM, fontSize: 15, color: C.venice, background: C.tintSoft, padding: "6px 14px" },
+      },
     },
-    MuiSkeleton: { defaultProps: { variant: "rounded", animation: "wave" }, styleOverrides: { root: { background: C.line, borderRadius: RADIUS } } },
+    MuiSkeleton: {
+      defaultProps: { variant: "rounded", animation: "wave" },
+      styleOverrides: { root: { background: C.line, borderRadius: RADIUS } },
+    },
     MuiListItemButton: { styleOverrides: { root: { "&:hover": { background: "transparent" } } } },
   },
-});
+})

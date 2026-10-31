@@ -1,63 +1,71 @@
-"use client";
+"use client"
 
-import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
-import Paper from "@mui/material/Paper";
-import SvgIcon from "@mui/material/SvgIcon";
-import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
-import { useEffect, useState } from "react";
-import { grade, QUESTION_TITLES, type Grade, type QuizQuestion } from "@/lib/quiz";
-import { C, displayFont, num, RADIUS_SM } from "@/theme";
-import { SpeakButton } from "./SpeakButton";
-import { useSpeech } from "./SpeechProvider";
+import Alert from "@mui/material/Alert"
+import Box from "@mui/material/Box"
+import Button from "@mui/material/Button"
+import IconButton from "@mui/material/IconButton"
+import Paper from "@mui/material/Paper"
+import SvgIcon from "@mui/material/SvgIcon"
+import TextField from "@mui/material/TextField"
+import Typography from "@mui/material/Typography"
+import { useEffect, useState } from "react"
+import { grade, QUESTION_TITLES, type Grade, type QuizQuestion } from "@/lib/quiz"
+import { C, displayFontSx, numSx, RADIUS_SM } from "@/theme"
+import { SpeakButton } from "./speak-button"
+import { useSpeech } from "./speech-provider"
 
 export interface QuizResult {
-  question: QuizQuestion;
-  given: string;
-  grade: Grade;
+  question: QuizQuestion
+  given: string
+  grade: Grade
 }
 
 // Prompts written in the language being learned (the rest are English).
-const TARGET_PROMPT = new Set<QuizQuestion["kind"]>(["meaning", "cloze", "conjugation", "gender", "gendered-form"]);
+const TARGET_PROMPT = new Set<QuizQuestion["kind"]>(["meaning", "cloze", "conjugation", "gender", "gendered-form"])
 
 const OPTION = {
   right: { borderColor: C.rock, bgcolor: C.tintSoft, color: C.venice, fontWeight: 600 },
   wrong: { borderColor: C.danger, bgcolor: C.dangerSoft, color: C.danger },
   dim: { opacity: 0.5 },
-} as const;
+} as const
+
+interface QuizProps {
+  questions: QuizQuestion[]
+  lang: string
+  onDone: (results: QuizResult[]) => void
+}
 
 /** Runs the questions in order. There's deliberately no skip: every question must be answered. */
-export function Quiz({ questions, lang, onDone }: { questions: QuizQuestion[]; lang: string; onDone: (results: QuizResult[]) => void }) {
-  const { say } = useSpeech();
-  const [i, setI] = useState(0);
-  const [given, setGiven] = useState<string | null>(null);
-  const [typed, setTyped] = useState("");
-  const [results, setResults] = useState<QuizResult[]>([]);
-  const q = questions[i];
-  const result = given === null ? null : grade(q, given);
-  const play = (slow = false) => q.audio && say(q.audio, { audio: q.audioUrl, slow });
+export function Quiz({ questions, lang, onDone }: QuizProps) {
+  const { say } = useSpeech()
+  const [i, setI] = useState(0)
+  const [given, setGiven] = useState<string | null>(null)
+  const [typed, setTyped] = useState("")
+  const [results, setResults] = useState<QuizResult[]>([])
+  const q = questions[i]
 
   // Listening questions play as soon as they appear.
   useEffect(() => {
-    if (q?.audio) say(q.audio, { audio: q.audioUrl });
-  }, [q, say]);
+    if (q?.audio) say(q.audio, { audio: q.audioUrl })
+  }, [q, say])
 
-  function answer(value: string) {
-    if (given !== null) return;
+  if (!q) return null
+  const result = given === null ? null : grade(q, given)
+  const play = (slow = false) => q.audio && say(q.audio, { audio: q.audioUrl, slow })
+
+  const answer = (value: string) => {
+    if (given !== null) return
     // Hear the right answer straight away, whether or not it was chosen, as extra listening practice.
-    say(q.reveal.text, { audio: q.reveal.audio });
-    setGiven(value);
-    setResults((r) => [...r, { question: q, given: value, grade: grade(q, value) }]);
+    say(q.reveal.text, { audio: q.reveal.audio })
+    setGiven(value)
+    setResults((r) => [...r, { question: q, given: value, grade: grade(q, value) }])
   }
 
   function next() {
-    if (i + 1 >= questions.length) return onDone(results);
-    setI(i + 1);
-    setGiven(null);
-    setTyped("");
+    if (i + 1 >= questions.length) return onDone(results)
+    setI(i + 1)
+    setGiven(null)
+    setTyped("")
   }
 
   return (
@@ -66,7 +74,12 @@ export function Quiz({ questions, lang, onDone }: { questions: QuizQuestion[]; l
         {questions.map((_, n) => (
           <Box
             key={n}
-            sx={{ flex: 1, height: 6, borderRadius: 999, bgcolor: n < i || (n === i && given !== null) ? C.venice : n === i ? C.rock : C.line }}
+            sx={{
+              flex: 1,
+              height: 6,
+              borderRadius: 999,
+              bgcolor: n < i || (n === i && given !== null) ? C.venice : n === i ? C.rock : C.line,
+            }}
           />
         ))}
       </Box>
@@ -74,7 +87,7 @@ export function Quiz({ questions, lang, onDone }: { questions: QuizQuestion[]; l
         <Box component="span" sx={{ fontSize: 14, fontWeight: 600, color: C.muted }}>
           {QUESTION_TITLES[q.kind]}
         </Box>
-        <Typography variant="body2" component="span" sx={num}>
+        <Typography variant="body2" component="span" sx={numSx}>
           {i + 1} of {questions.length}
         </Typography>
       </Box>
@@ -85,7 +98,14 @@ export function Quiz({ questions, lang, onDone }: { questions: QuizQuestion[]; l
           sx={
             q.kind === "cloze"
               ? { fontSize: 24, fontWeight: 500, lineHeight: 1.4, mt: 1.5, textWrap: "pretty" }
-              : { ...displayFont, fontSize: "clamp(30px, 7vw, 44px)", lineHeight: 1.15, color: C.venice, mt: 1.5, textWrap: "balance" }
+              : {
+                  ...displayFontSx,
+                  fontSize: "clamp(30px, 7vw, 44px)",
+                  lineHeight: 1.15,
+                  color: C.venice,
+                  mt: 1.5,
+                  textWrap: "balance",
+                }
           }
         >
           {q.prompt}
@@ -113,7 +133,8 @@ export function Quiz({ questions, lang, onDone }: { questions: QuizQuestion[]; l
       {q.options ? (
         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 1.25, mt: 2.5 }}>
           {q.options.map((o) => {
-            const state = given === null ? undefined : o === q.answer ? OPTION.right : o === given ? OPTION.wrong : OPTION.dim;
+            const state =
+              given === null ? undefined : o === q.answer ? OPTION.right : o === given ? OPTION.wrong : OPTION.dim
             return (
               <Button
                 key={o}
@@ -137,7 +158,7 @@ export function Quiz({ questions, lang, onDone }: { questions: QuizQuestion[]; l
               >
                 {o}
               </Button>
-            );
+            )
           })}
         </Box>
       ) : (
@@ -145,8 +166,8 @@ export function Quiz({ questions, lang, onDone }: { questions: QuizQuestion[]; l
           component="form"
           sx={{ display: "flex", gap: 1.25, mt: 2.5 }}
           onSubmit={(e) => {
-            e.preventDefault();
-            if (typed.trim()) answer(typed);
+            e.preventDefault()
+            if (typed.trim()) answer(typed)
           }}
         >
           <TextField
@@ -199,5 +220,5 @@ export function Quiz({ questions, lang, onDone }: { questions: QuizQuestion[]; l
         </Alert>
       )}
     </Paper>
-  );
+  )
 }
