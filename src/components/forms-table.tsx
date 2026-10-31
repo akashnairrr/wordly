@@ -13,6 +13,9 @@ const LABELS: [keyof WordForms, string][] = [
   ["plural", "Plural"],
   ["masculinePlural", "Masculine plural"],
   ["femininePlural", "Feminine plural"],
+  ["genitive", "Genitive"],
+  ["comparative", "Comparative"],
+  ["superlative", "Superlative"],
 ]
 
 interface FormRow {
@@ -63,9 +66,16 @@ interface FormsTableProps {
 
 export function FormsTable({ word, lang }: FormsTableProps) {
   const forms = word.forms ?? {}
-  // The headword is the base form (masculine singular for adjectives); show it as the first row.
-  const gendered = !!(forms.feminine || forms.masculine) || word.pos === "adj"
-  const base = !gendered ? "Singular" : word.gender === "f" || forms.masculine ? "Feminine" : "Masculine"
+  // The headword is the base form: masculine (or feminine) singular when the word has gendered forms, plain singular
+  // for nouns, and just the base form for words that only compare (German gut → besser).
+  const gendered = !!(forms.feminine || forms.masculine)
+  const base = gendered
+    ? word.gender === "f" || forms.masculine
+      ? "Feminine"
+      : "Masculine"
+    : forms.plural || forms.genitive || word.pos === "noun"
+      ? "Singular"
+      : "Base form"
   const rows: [string, string][] = [
     [base, word.lemma],
     ...LABELS.filter(([k]) => forms[k]).map(([k, l]) => [l, forms[k]!] as [string, string]),

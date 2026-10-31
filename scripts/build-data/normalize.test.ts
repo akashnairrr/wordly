@@ -105,3 +105,106 @@ describe("normalize", () => {
     assert.equal(bestEntry([letter]), undefined)
   })
 })
+
+describe("normalize: German", () => {
+  const conj = (form: string, ...tags: string[]) => ({ form, tags, source: "conjugation" })
+  const sense = { glosses: ["to make, to produce"] }
+
+  it("noun: neuter gender, plural and genitive; diminutives left out", () => {
+    const w = toWord(
+      {
+        word: "Haus",
+        pos: "noun",
+        head_templates: [{ expansion: "Haus n (strong, genitive Hauses, plural Häuser)" }],
+        senses: [{ glosses: ["house, building"] }],
+        forms: [
+          { form: "Hauses", tags: ["genitive"] },
+          { form: "Häuser", tags: ["plural"] },
+          { form: "Häuschen", tags: ["diminutive", "neuter"] },
+        ],
+      },
+      1
+    )!
+    assert.equal(w.gender, "n")
+    assert.deepEqual(w.forms, { plural: "Häuser", genitive: "Hauses" })
+    assert.equal(w.id, "haus")
+  })
+
+  it("verb: present, Präteritum, Perfekt, Futur, Konjunktiv II and würde; separable forms kept whole", () => {
+    const w = toWord(
+      {
+        word: "anrufen",
+        pos: "verb",
+        senses: [sense],
+        forms: [
+          conj("rufe an", "first-person", "indicative", "present", "singular"),
+          conj("anrufe", "first-person", "indicative", "present", "singular", "subordinate-clause"),
+          conj("rief an", "first-person", "indicative", "preterite", "singular"),
+          conj("habe angerufen", "first-person", "indicative", "multiword-construction", "perfect", "singular"),
+          conj("hatte angerufen", "first-person", "indicative", "multiword-construction", "pluperfect", "singular"),
+          conj(
+            "werde anrufen",
+            "first-person",
+            "future",
+            "future-i",
+            "indicative",
+            "multiword-construction",
+            "singular"
+          ),
+          conj(
+            "würde anrufen",
+            "first-person",
+            "future",
+            "future-i",
+            "multiword-construction",
+            "singular",
+            "subjunctive",
+            "subjunctive-ii"
+          ),
+          conj("riefe an", "first-person", "singular", "subjunctive", "subjunctive-ii"),
+          conj("rufe an", "first-person", "singular", "subjunctive", "subjunctive-i"),
+          conj("ruf an", "imperative", "second-person", "singular"),
+          conj("angerufen", "participle", "past"),
+        ],
+      },
+      1
+    )!
+    assert.deepEqual(w.conjugation, {
+      indicative: {
+        present: { "1s": "rufe an" },
+        preterite: { "1s": "rief an" },
+        perfect: { "1s": "habe angerufen" },
+        future: { "1s": "werde anrufen" },
+      },
+      subjunctive: { conditional: { "1s": "würde anrufen" }, imperfect: { "1s": "riefe an" } },
+      imperative: { affirmative: { "2s": "ruf an" } },
+    })
+    assert.equal(w.nonFinite?.participle, "angerufen")
+  })
+
+  it("adjective: comparative and superlative, not the declension table", () => {
+    const w = toWord(
+      {
+        word: "gut",
+        pos: "adj",
+        senses: [{ glosses: ["good"] }],
+        forms: [
+          { form: "guter", tags: ["masculine", "nominative", "singular", "strong"] },
+          { form: "besser", tags: ["comparative"] },
+          { form: "am besten", tags: ["superlative"] },
+          {
+            form: "gute",
+            tags: ["feminine", "nominative", "singular", "strong", "without-article"],
+            source: "declension",
+          },
+        ],
+      },
+      1
+    )!
+    assert.deepEqual(w.forms, { comparative: "besser", superlative: "am besten" })
+  })
+
+  it("wordId spells ß as ss", () => {
+    assert.equal(wordId("groß"), "gross")
+  })
+})

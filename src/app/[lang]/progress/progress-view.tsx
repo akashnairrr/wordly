@@ -21,6 +21,7 @@ import { useSpeech } from "@/components/speech-provider"
 import { StatLine } from "@/components/stat-line"
 import { ToneChip } from "@/components/tone-chip"
 import { getLanguage, POS_LABELS } from "@/lib/languages"
+import { LEVELS, levelProgress } from "@/lib/levels"
 import { emptyProgress, parseBackup } from "@/lib/progress"
 import { isNaturalVoice, RATES } from "@/lib/speech"
 import type { Pos } from "@/lib/types"
@@ -125,6 +126,36 @@ export function ProgressView({ lang }: ProgressViewProps) {
             <ToneChip key={pos} label={`${POS_LABELS[pos as Pos]} ${n}`} />
           ))}
         </Box>
+      )}
+
+      {index && (
+        <Section title="Levels">
+          <Box component="ol" sx={{ listStyle: "none", p: 0, m: 0, display: "grid", gap: 1.75 }}>
+            {LEVELS.map((l) => {
+              const { done, total: inLevel } = levelProgress(index, progress, l)
+              return (
+                <li key={l.n}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, fontSize: 15 }}>
+                    <span>
+                      <b>Level {l.n}</b> · {l.name}{" "}
+                      <Box component="span" sx={{ ...numSx, color: C.muted, fontSize: 13 }}>
+                        words {l.from}–{l.to}
+                      </Box>
+                    </span>
+                    <Box component="span" sx={numSx}>
+                      {done}/{inLevel}
+                    </Box>
+                  </Box>
+                  <LinearProgress
+                    value={(done / Math.max(1, inLevel)) * 100}
+                    aria-label={`Level ${l.n} progress`}
+                    sx={{ mt: 0.75 }}
+                  />
+                </li>
+              )
+            })}
+          </Box>
+        </Section>
       )}
 
       <Section title="History">

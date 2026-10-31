@@ -1,9 +1,8 @@
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
-import { Flag } from "@/components/flag"
 import { TextLink } from "@/components/links"
-import { LANGUAGES } from "@/lib/languages"
-import { C, columnSx, displayFontSx, RADIUS, RADIUS_SM } from "@/theme"
+import { C, columnSx, displayFontSx, RADIUS } from "@/theme"
+import { LanguageStart } from "./language-start"
 
 export default function LanguagePicker() {
   return (
@@ -28,36 +27,7 @@ export default function LanguagePicker() {
         <Typography variant="h2" sx={{ fontSize: 22 }}>
           Choose a language
         </Typography>
-        <Box component="ul" sx={{ listStyle: "none", p: 0, m: "14px 0 18px" }}>
-          {Object.values(LANGUAGES).map((l) => (
-            <li key={l.code}>
-              <TextLink
-                href={`/${l.code}/`}
-                underline="none"
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 1.5,
-                  bgcolor: C.surface,
-                  borderRadius: `${RADIUS_SM}px`,
-                  px: 2.5,
-                  py: 2.25,
-                }}
-              >
-                <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 1.75 }}>
-                  <Flag country={l.country} height={28} />
-                  <Box component="span" lang={l.code} sx={{ ...displayFontSx, fontSize: 30 }}>
-                    {l.nativeName}
-                  </Box>
-                </Box>
-                <Box component="span" sx={{ color: C.muted }}>
-                  {l.name}
-                </Box>
-              </TextLink>
-            </li>
-          ))}
-        </Box>
+        <LanguageStart />
         <Typography variant="body2" sx={{ color: C.venice }}>
           More languages are on the way. <TextLink href="/about/">Data sources & credits</TextLink>
         </Typography>

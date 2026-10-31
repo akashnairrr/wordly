@@ -15,3 +15,6 @@ export function allForms(w: Pick<Word, "lemma" | "forms" | "conjugation" | "nonF
 export function stripAccents(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "")
 }
+
+/** One client-side page shows every word (10,000 pre-built pages would exceed GitHub Pages' 1 GB limit). */
+export const wordHref = (lang: string, id: string) => `/${lang}/word/?id=${encodeURIComponent(id)}`
