@@ -1,0 +1,9 @@
+{
+  // Format with the repo's Prettier config every time a file is saved.
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  // Save when the editor loses focus: switching files, panels or apps (alt-tab). Format on save runs on these saves too.
+  "files.autoSave": "onFocusChange",
+  // Only format when the project has a Prettier config, never with the extension's own defaults.
+  "prettier.requireConfig": true
+}

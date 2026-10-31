@@ -4,7 +4,7 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Slider from "@mui/material/Slider";
 import { useState } from "react";
-import { bandWarning, DIFFICULTY_INFO, difficulty, MAX_SIZE, MIN_SIZE, type Difficulty } from "@/lib/session";
+import { DIFFICULTY_INFO, difficulty, MAX_SIZE, MIN_SIZE, type Difficulty } from "@/lib/session";
 import { C, displayFont, num } from "@/theme";
 
 const NOTICE: Record<Difficulty, object> = {
@@ -14,12 +14,12 @@ const NOTICE: Record<Difficulty, object> = {
 };
 
 export function SessionSizePicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
-  const level = difficulty(value);
   // Set when the user moves up into a harder band, cleared when they move back down.
   const [warning, setWarning] = useState<Difficulty | null>(null);
 
   function change(n: number) {
-    setWarning((w) => bandWarning(w, level, difficulty(n)));
+    const level = difficulty(n);
+    setWarning(level === "Easy" ? null : level);
     onChange(n);
   }
 
@@ -44,9 +44,9 @@ export function SessionSizePicker({ value, onChange }: { value: number; onChange
         sx={{ mt: 1, mb: 0.25 }}
       />
 
-      <Alert role="status" sx={{ mt: 1.75, ...NOTICE[warning ?? level] }}>
+      <Alert role="status" sx={{ mt: 1.75, ...NOTICE[warning ?? "Easy"  ] }}>
         {warning ? <b>{DIFFICULTY_INFO[warning].label}. </b> : null}
-        {DIFFICULTY_INFO[warning ?? level].note}
+        {DIFFICULTY_INFO[warning ?? "Easy"].note}
       </Alert>
     </div>
   );
