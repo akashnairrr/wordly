@@ -1,19 +1,28 @@
 "use client"
 
 import Box from "@mui/material/Box"
-import { useState } from "react"
+import { useState, useSyncExternalStore } from "react"
 import { LanguageSelect } from "@/components/language-select"
 import { ButtonLink } from "@/components/links"
-import { LANGUAGE_LIST } from "@/lib/languages"
+import { getLanguage, LANGUAGE_LIST } from "@/lib/languages"
+import { readLastLanguage } from "@/lib/last-language"
 
-/** Pick a language, then start: choosing in the dropdown doesn't navigate on its own. */
+const noSubscribe = () => () => {}
+
+/**
+ * Pick a language, then start: choosing in the dropdown doesn't navigate on its own. Returning learners start on the
+ * language they used last.
+ */
 export function LanguageStart() {
-  const [code, setCode] = useState(LANGUAGE_LIST[0]!.code)
+  // Read after hydration only; the static HTML starts on the first language.
+  const saved = useSyncExternalStore(noSubscribe, readLastLanguage, () => null)
+  const [picked, setPicked] = useState<string | null>(null)
+  const code = picked ?? saved ?? LANGUAGE_LIST[0]!.code
   return (
     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, mt: 1.75, mb: 2.25 }}>
-      <LanguageSelect value={code} onChange={setCode} sx={{ flex: "1 1 240px" }} />
+      <LanguageSelect value={code} onChange={setPicked} sx={{ flex: "1 1 240px" }} />
       <ButtonLink href={`/${code}/`} sx={{ minHeight: 64, px: 4, flex: { xs: "1 1 100%", sm: "0 0 auto" } }}>
-        Start learning
+        {code === saved ? `Continue in ${getLanguage(code).nativeName}` : "Start learning"}
       </ButtonLink>
     </Box>
   )

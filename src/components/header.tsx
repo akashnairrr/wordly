@@ -6,8 +6,9 @@ import Button from "@mui/material/Button"
 import Toolbar from "@mui/material/Toolbar"
 import NextLink from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { getLanguage } from "@/lib/languages"
+import { saveLastLanguage } from "@/lib/last-language"
 import { C, columnSx, displayFontSx, Z } from "@/theme"
 
 // Small phones (iPhone SE, 320px): logo, three links and the language flag only just fit.
@@ -25,6 +26,9 @@ export function Header({ lang }: HeaderProps) {
   // Language picked in the switcher, waiting for confirmation.
   const [switchTo, setSwitchTo] = useState<string | null>(null)
   const inLesson = path.startsWith(`/${lang}/session`)
+
+  // Every language page remembers its language for the next visit to the landing page.
+  useEffect(() => saveLastLanguage(lang), [lang])
   const links = [
     { href: `/${lang}/`, label: "Today", active: path === `/${lang}/` || path.startsWith(`/${lang}/session`) },
     { href: `/${lang}/words/`, label: "Words", active: path.startsWith(`/${lang}/word`) },
