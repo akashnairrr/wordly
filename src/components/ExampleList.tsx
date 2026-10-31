@@ -6,14 +6,24 @@ import styles from "./WordCard.module.css";
 
 const COLORS = 5;
 
-/** One word or phrase with its meaning underneath, in a matching colour. */
-function Unit({ es, en, color, lang }: { es: string; en?: string; color?: number; lang: string }) {
+/** One word or phrase with its meaning (and dictionary form, if inflected) underneath, in a matching colour. */
+function Unit({ es, en, lemma, color, lang }: { es: string; en?: string; lemma?: string; color?: number; lang: string }) {
   return (
     <span className={`${styles.unit} ${color === undefined ? "" : styles[`c${color % COLORS}`]}`}>
       <span className={styles.es} lang={lang}>
         {es}
       </span>
-      {en && <span className={styles.en}>{en}</span>}
+      {en && (
+        <span className={styles.en}>
+          {lemma && (
+            <span className={styles.dictForm} lang={lang}>
+              {lemma}
+            </span>
+          )}
+          {/* Keep "to come" and "the /" together when the meaning wraps under a short word. */}
+          {en.replace(/^to /, "to\u00a0").replaceAll(" / ", "\u00a0/ ")}
+        </span>
+      )}
     </span>
   );
 }
@@ -53,7 +63,7 @@ function GlossedSentence({ ex, forms, lang }: { ex: Example; forms: Set<string>;
     const gloss = ex.words?.[token];
     items.push(
       gloss ? (
-        <Unit key={k} es={word} en={gloss.l ? `${gloss.l} · ${gloss.g}` : gloss.g} color={color++} lang={lang} />
+        <Unit key={k} es={word} en={gloss.g} lemma={gloss.l} color={color++} lang={lang} />
       ) : (
         <Unit key={k} es={word} lang={lang} />
       ),

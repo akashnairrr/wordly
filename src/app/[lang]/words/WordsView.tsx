@@ -24,16 +24,26 @@ const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
 ];
 const POS_FILTERS: Pos[] = ["noun", "verb", "adj", "adv", "pron", "prep", "conj", "det", "intj"];
 
+/** Mirrors the filters into the URL (?q=&filter=&pos=) so going back to this page restores them. */
+function syncUrl(next: { q?: string; filter?: StatusFilter; pos?: Pos | "all" }) {
+  const params = new URLSearchParams(window.location.search);
+  for (const [key, value] of Object.entries(next)) {
+    if (value && value !== "all") params.set(key, value);
+    else params.delete(key);
+  }
+  const qs = params.toString();
+  window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+}
 
 const fold = (s: string) => stripAccents(s.toLowerCase());
 
 export function WordsView({ lang }: { lang: string }) {
   const [progress] = useProgress(lang);
   const { index, error } = useIndex(lang);
-  const initial = useSearchParams().get("filter");
-  const [status, setStatus] = useState<StatusFilter>(STATUS_FILTERS.find((f) => f.id === initial)?.id ?? "all");
-  const [pos, setPos] = useState<Pos | "all">("all");
-  const [query, setQuery] = useState("");
+  const params = useSearchParams();
+  const [status, setStatus] = useState<StatusFilter>(STATUS_FILTERS.find((f) => f.id === params.get("filter"))?.id ?? "all");
+  const [pos, setPos] = useState<Pos | "all">(POS_FILTERS.find((p) => p === params.get("pos")) ?? "all");
+  const [query, setQuery] = useState(params.get("q") ?? "");
   const [shown, setShown] = useState(PAGE);
 
   if (error) return <p className="empty">Could not load words: {error}</p>;
@@ -96,6 +106,7 @@ export function WordsView({ lang }: { lang: string }) {
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
+          syncUrl({ q: e.target.value });
           setShown(PAGE);
         }}
         aria-label="Search words"
@@ -110,6 +121,7 @@ export function WordsView({ lang }: { lang: string }) {
             aria-pressed={status === f.id}
             onClick={() => {
               setStatus(f.id);
+              syncUrl({ filter: f.id });
               setShown(PAGE);
             }}
           >
@@ -121,7 +133,10 @@ export function WordsView({ lang }: { lang: string }) {
         <label htmlFor="pos" className="small">
           Part of speech
         </label>
-        <select id="pos" className={styles.select} value={pos} onChange={(e) => setPos(e.target.value as Pos | "all")}>
+        <select id="pos" className={styles.select} value={pos} onChange={(e) => {
+            setPos(e.target.value as Pos | "all");
+            syncUrl({ pos: e.target.value as Pos | "all" });
+          }}>
           <option value="all">Any</option>
           {POS_FILTERS.map((p) => (
             <option key={p} value={p}>
@@ -144,6 +159,7 @@ export function WordsView({ lang }: { lang: string }) {
               setQuery("");
               setStatus("all");
               setPos("all");
+              syncUrl({ q: "", filter: "all", pos: "all" });
             }}
           >
             Clear filters
