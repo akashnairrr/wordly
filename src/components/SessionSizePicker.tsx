@@ -4,10 +4,9 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Slider from "@mui/material/Slider";
 import { useState } from "react";
-import { DIFFICULTY_INFO, difficulty, MAX_SIZE, MIN_SIZE, type Difficulty } from "@/lib/session";
+import { bandWarning, DIFFICULTY_INFO, difficulty, MAX_SIZE, MIN_SIZE, type Difficulty } from "@/lib/session";
 import { C, displayFont, num } from "@/theme";
 
-const ORDER: Difficulty[] = ["Easy", "Moderate", "Hard"];
 const NOTICE: Record<Difficulty, object> = {
   Easy: { bgcolor: C.tintSoft },
   Moderate: { bgcolor: C.warningSoft, color: C.warning },
@@ -16,13 +15,11 @@ const NOTICE: Record<Difficulty, object> = {
 
 export function SessionSizePicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   const level = difficulty(value);
-  // Set only when the user moves *up* into a harder band; cleared when they come back to easy.
+  // Set when the user moves up into a harder band, cleared when they move back down.
   const [warning, setWarning] = useState<Difficulty | null>(null);
 
   function change(n: number) {
-    const next = difficulty(n);
-    if (ORDER.indexOf(next) > ORDER.indexOf(level)) setWarning(next);
-    else if (next === "Easy") setWarning(null);
+    setWarning((w) => bandWarning(w, level, difficulty(n)));
     onChange(n);
   }
 

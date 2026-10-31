@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { LANGUAGES } from "./languages";
 import { emptyProgress, recordSession, skipWord, unskipWord } from "./progress";
 import { buildQuiz, grade, normalizeAnswer, type QuizQuestion } from "./quiz";
-import { difficulty, pickNewWords, planLesson, reviewQueue, wordStatus } from "./session";
+import { bandWarning, difficulty, pickNewWords, planLesson, reviewQueue, wordStatus } from "./session";
 import type { IndexEntry, Word } from "./types";
 
 const es = LANGUAGES.es;
@@ -84,6 +84,14 @@ test("grading: typed answers tolerate case, punctuation and missing accents", ()
   assert.equal(grade(q, "eso"), "wrong");
   assert.equal(grade({ ...q, options: ["está", "esta"] }, "esta"), "wrong", "multiple choice must be exact");
   assert.equal(normalizeAnswer("¿Qué?"), "qué");
+});
+
+test("session: the harder-band notice follows the slider both ways", () => {
+  // Slide 5 → 15 → 5: warns entering Moderate and Hard, then drops the warning on the way down.
+  const sizes = [5, 9, 13, 15, 12, 9, 8, 5];
+  let warning: ReturnType<typeof bandWarning> = null;
+  const seen = sizes.slice(1).map((n, i) => (warning = bandWarning(warning, difficulty(sizes[i]), difficulty(n))));
+  assert.deepEqual(seen, ["Moderate", "Hard", "Hard", null, null, null, null]);
 });
 
 test("session: difficulty bands and next unlearned words by rank", () => {

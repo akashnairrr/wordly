@@ -15,6 +15,17 @@ export function difficulty(size: number): Difficulty {
   return size <= 8 ? "Easy" : size <= 12 ? "Moderate" : "Hard";
 }
 
+const DIFFICULTY_ORDER: Difficulty[] = ["Easy", "Moderate", "Hard"];
+
+/**
+ * The "getting harder" notice as the lesson size moves from one band to another: set on moving up into a harder band,
+ * dropped on moving back down (so 13 → 12 shows Moderate, not a leftover Hard warning), kept within a band.
+ */
+export function bandWarning(warning: Difficulty | null, from: Difficulty, to: Difficulty): Difficulty | null {
+  const step = DIFFICULTY_ORDER.indexOf(to) - DIFFICULTY_ORDER.indexOf(from);
+  return step > 0 ? to : step < 0 ? null : warning;
+}
+
 export function clampSize(n: number): number {
   return Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(n)));
 }
