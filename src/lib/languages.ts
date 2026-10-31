@@ -94,6 +94,18 @@ export function getLanguage(code: string): Language {
   return lang
 }
 
+/** Languages for pickers, by English name. */
+export const LANGUAGE_LIST: Language[] = Object.values(LANGUAGES).sort((a, b) => a.name.localeCompare(b.name))
+
+/**
+ * Where to go when switching language from `path`: the same section (home, words, progress) in the other language.
+ * Word pages and lessons go to that language's home, since words and lessons don't carry over.
+ */
+export function switchLanguagePath(path: string, to: string): string {
+  const section = path.split("/").filter(Boolean)[1]
+  return section === "words" || section === "progress" ? `/${to}/${section}/` : `/${to}/`
+}
+
 export const POS_LABELS: Record<Pos, string> = {
   noun: "Noun",
   verb: "Verb",

@@ -20,7 +20,7 @@ export default async function LanguageLayout({ children, params }: LayoutProps<"
   const { lang } = await params
   return (
     <SpeechProvider lang={lang}>
-      <Header lang={lang} languageName={getLanguage(lang).nativeName} />
+      <Header lang={lang} />
       <Box component="main" sx={{ ...columnSx, pb: "calc(48px + env(safe-area-inset-bottom))" }}>
         {children}
       </Box>
