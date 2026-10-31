@@ -1,5 +1,13 @@
 // Inline SVG flags: emoji flags render as plain letters on Windows. Add a country here when adding a language.
 const FLAGS: Record<string, React.ReactNode> = {
+  // Germany: black–red–gold, three equal bands.
+  DE: (
+    <>
+      <rect width="3" height="2" fill="#000000" />
+      <rect y="0.6667" width="3" height="0.6667" fill="#DD0000" />
+      <rect y="1.3333" width="3" height="0.6667" fill="#FFCE00" />
+    </>
+  ),
   // Spain, civil flag (red–yellow–red, 1:2:1), without the coat of arms so it stays crisp at small sizes.
   ES: (
     <>

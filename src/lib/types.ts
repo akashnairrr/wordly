@@ -3,7 +3,8 @@
 export type Pos = "noun" | "verb" | "adj" | "adv" | "pron" | "prep" | "conj" | "det" | "intj" | "num" | "other"
 
 export type Mood = "indicative" | "subjunctive" | "imperative"
-export type Tense = "present" | "preterite" | "imperfect" | "future" | "conditional" | "affirmative" | "negative"
+export type Tense =
+  "present" | "preterite" | "imperfect" | "perfect" | "future" | "conditional" | "affirmative" | "negative"
 export type Person = "1s" | "2s" | "3s" | "1p" | "2p" | "3p"
 
 export type Conjugation = Partial<Record<Mood, Partial<Record<Tense, Partial<Record<Person, string>>>>>>
@@ -36,6 +37,9 @@ export interface WordForms {
   plural?: string
   masculinePlural?: string
   femininePlural?: string
+  genitive?: string
+  comparative?: string
+  superlative?: string
 }
 
 export interface Word {
@@ -50,7 +54,7 @@ export interface Word {
   audio?: string
   /** Human recordings of inflected forms (form → URL), for those that have one. */
   formAudio?: Record<string, string>
-  gender?: "m" | "f" | "mf"
+  gender?: "m" | "f" | "n" | "mf"
   forms?: WordForms
   conjugation?: Conjugation
   nonFinite?: { gerund?: string; participle?: string }

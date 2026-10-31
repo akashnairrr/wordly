@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
-import { findExamples, indexSentences, literalness } from "./sentences"
+import { findExamples, indexSentences, literalness, mostlyCapitalised } from "./sentences"
 
 describe("sentences", () => {
   it("whole-word match, spread across forms", () => {
@@ -98,5 +98,41 @@ describe("sentences", () => {
       literalness(["qué", "hora"], "What hour?", (t) => dict[t]),
       1
     )
+  })
+
+  it("German: capitalised nouns aren't names, unknown capitalised words still are", () => {
+    const dict: Record<string, string> = { ich: "I", habe: "have", ein: "a", haus: "house", hat: "has", tom: "" }
+    const everyday = {
+      rank: new Map(),
+      commonCutoff: Infinity,
+      basicCutoff: Infinity,
+      droppedPronouns: new Set<string>(),
+      gloss: (t: string) => dict[t] || undefined,
+      capitalisedNouns: true,
+    }
+    const index = indexSentences(
+      [
+        { text: "Tom hat ein Haus.", en: "Tom has a house." },
+        { text: "Ich habe ein Haus.", en: "I have a house." },
+      ],
+      everyday
+    )
+    assert.deepEqual(
+      findExamples(index, ["haus"], 2).map((e) => e.text),
+      ["Ich habe ein Haus.", "Tom hat ein Haus."]
+    )
+  })
+
+  it("mostlyCapitalised counts mid-sentence spellings only", () => {
+    const got = mostlyCapitalised([
+      "Guten Tag!",
+      "Das war ein schöner Tag.",
+      "Ich habe keine Zeit.",
+      "Habe ich das gesagt?",
+      "Was habe ich getan?",
+    ])
+    assert.ok(got.has("tag") && got.has("zeit"))
+    // "Habe" at the start of a sentence doesn't count; mid-sentence it's lowercase.
+    assert.ok(!got.has("habe"))
   })
 })

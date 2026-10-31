@@ -166,14 +166,16 @@ const conjugation: Maker = (w, { lang, rng }) => {
 }
 
 const gender: Maker = (w, { lang }) => {
-  if (w.gender !== "m" && w.gender !== "f") return
+  if (!w.gender || w.gender === "mf") return
   const article = lang.articles[w.gender]
+  if (!article) return
   return {
     kind: "gender",
     wordId: w.id,
     prompt: w.lemma,
     hint: w.glosses[0],
-    options: [lang.articles.m, lang.articles.f],
+    // el / la, or der / die / das.
+    options: Object.values(lang.articles),
     answer: article,
     // Article + noun together, so the gender is heard with the word (no recording exists for the pair).
     reveal: { text: `${article} ${w.lemma}` },

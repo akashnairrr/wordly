@@ -55,11 +55,14 @@ Spot-check the top words after a run; fix misresolved ones in `scripts/build-dat
 
 ## Adding a language
 
-1. Add sources in `scripts/build-data/sources.ts` (FrequencyWords, kaikki, manythings and Lingua Libre all cover many languages).
-2. Add a registry entry in `src/lib/languages.ts` (TTS locales, articles, person labels, tenses to show).
-3. `pnpm data --lang <code>`, then spot-check and add overrides.
+Spanish (`es`) and German (`de`) are built. For another language:
 
-Conjugation parsing in `normalize.ts` relies on Wiktionary's mood/tense/person tags, which are shared across languages. The variant filters (vos, -se subjunctive) are Spanish-specific and harmless elsewhere.
+1. Add sources in `scripts/build-data/sources.ts` (FrequencyWords, kaikki, manythings and Lingua Libre all cover many languages).
+2. Add a registry entry in `src/lib/languages.ts`: TTS locales, articles (with neuter if the language has it), person labels, tenses to show, pronouns speakers drop, and `capitalisedNouns` for languages like German.
+3. Add the country's flag to `src/components/flag.tsx`.
+4. `pnpm data --lang <code>`, then spot-check and add overrides and short glosses in `overrides.ts`.
+
+Conjugation parsing in `normalize.ts` relies on Wiktionary's mood/tense/person tags, which are shared across languages. Variant filters cover Spanish (vos, -se subjunctive) and German (subordinate-clause order, Konjunktiv I, pluperfect, Futur II); compound tenses such as the German Perfekt are kept as two-word forms. Words are matched case-insensitively, so German nouns (Haus) are found from the lowercase frequency list.
 
 ## Deploy (GitHub Pages)
 

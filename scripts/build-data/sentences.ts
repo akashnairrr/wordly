@@ -38,6 +38,8 @@ export interface Everyday {
   droppedPronouns: Set<string>
   /** Short English meaning of a token, to check that the translation follows the sentence. */
   gloss?: (token: string) => string | undefined
+  /** Nouns are capitalised (German), so a capital mid-sentence only means a name when the word isn't in the dictionary. */
+  capitalisedNouns?: boolean
 }
 
 const NO_EVERYDAY: Everyday = {
@@ -68,8 +70,9 @@ export function literalness(tokens: string[], en: string, gloss: Everyday["gloss
 function measure(text: string, en: string, everyday: Everyday): SentenceStats {
   const tokens = tokenize(text)
   const rankOf = (t: string) => everyday.rank.get(t) ?? Infinity
-  const isName = (m: RegExpExecArray) =>
-    /\s/.test(text[m.index - 1] ?? "") || (!!everyday.gloss && !everyday.gloss(m[0].toLowerCase()))
+  const unknown = (m: RegExpExecArray) => !!everyday.gloss && !everyday.gloss(m[0].toLowerCase())
+  const midSentence = (m: RegExpExecArray) => /\s/.test(text[m.index - 1] ?? "")
+  const isName = (m: RegExpExecArray) => unknown(m) || (!everyday.capitalisedNouns && midSentence(m))
   return {
     tokens,
     rare: tokens.filter((t) => rankOf(t) >= everyday.commonCutoff),
@@ -87,6 +90,29 @@ function measure(text: string, en: string, everyday: Everyday): SentenceStats {
  * Reads manythings "English<TAB>Target<TAB>attribution" lines from inside the zip. The attribution ends with the
  * target sentence's Tatoeba id ("… #2877272 (CM) & #4986655 (user)"), used to attach a human recording.
  */
+/** Target-language side of the manythings file (English<TAB>Target<TAB>attribution). */
+export function readTargetSentences(zipPath: string, file: string): string[] {
+  const raw = execFileSync("unzip", ["-p", zipPath, file], { maxBuffer: 1 << 30 }).toString("utf8")
+  return raw.split("\n").flatMap((line) => line.split("\t")[1] ?? [])
+}
+
+/**
+ * Words written with a capital more often than without, counting only mid-sentence uses (sentence starts are always
+ * capitalised). In German that means a noun: Tag (day) rather than tag ("meet!"), Zeit rather than the rare zeit.
+ */
+export function mostlyCapitalised(texts: string[]): Set<string> {
+  const counts = new Map<string, { upper: number; lower: number }>()
+  for (const text of texts) {
+    for (const m of text.matchAll(/(?<=[^.!?¿¡"„“«\s]\s+)\p{L}+/gu)) {
+      const c = counts.get(m[0].toLowerCase()) ?? { upper: 0, lower: 0 }
+      if (/^\p{Lu}/u.test(m[0])) c.upper++
+      else c.lower++
+      counts.set(m[0].toLowerCase(), c)
+    }
+  }
+  return new Set([...counts].filter(([, c]) => c.upper > c.lower).map(([k]) => k))
+}
+
 export function loadSentences(
   zipPath: string,
   file: string,

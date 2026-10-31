@@ -14,7 +14,7 @@ import { SpeakButton } from "./speak-button"
 import { useSpeech } from "./speech-provider"
 import { ToneChip } from "./tone-chip"
 
-const GENDER_LABEL = { m: "masculine", f: "feminine", mf: "masculine or feminine" } as const
+const GENDER_LABEL = { m: "masculine", f: "feminine", n: "neuter", mf: "masculine or feminine" } as const
 
 interface SectionProps {
   title: string
@@ -43,7 +43,7 @@ interface WordCardProps {
 export function WordCard({ word, lang, autoSpeak = false, badge }: WordCardProps) {
   const language = getLanguage(lang)
   const { available, say } = useSpeech()
-  const article = word.gender === "m" || word.gender === "f" ? language.articles[word.gender] : undefined
+  const article = word.gender && word.gender !== "mf" ? language.articles[word.gender] : undefined
 
   // Speak the word when a lesson card opens. Recordings play without waiting for voices to load.
   useEffect(() => {

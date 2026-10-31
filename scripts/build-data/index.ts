@@ -12,7 +12,7 @@ import { glossExample, phraseCandidates, shortGloss, translatingGloss } from "./
 import { bestEntry, mapPos, toWord, usableGlosses } from "./normalize"
 import { OVERRIDES, SHORT_GLOSSES } from "./overrides"
 import { loadSentenceRecordings, loadWordRecordings } from "./recordings"
-import { findExamples, loadSentences } from "./sentences"
+import { findExamples, loadSentences, mostlyCapitalised, readTargetSentences } from "./sentences"
 import { MAX_EXAMPLES, SOURCES, TOP_N } from "./sources"
 import { formOfTargets, isLemmaEntry, streamEntries, type RawEntry } from "./wiktionary"
 
@@ -24,6 +24,10 @@ const own = <T>(dict: Record<string, T>, key: string) => (Object.hasOwn(dict, ke
 async function main() {
   const { values } = parseArgs({ options: { lang: { type: "string", default: "es" } } })
   const lang = values.lang!
+  // Languages that capitalise nouns are matched case-insensitively: the frequency list is lowercase, Wiktionary writes
+  // Haus. Maps are keyed by this; the Word keeps Wiktionary's spelling. Elsewhere spelling must match exactly, so
+  // capitalised entries (Spanish Jesús, OK) stay out.
+  const key = LANGUAGES[lang]?.capitalisedNouns ? (word: string) => word.toLowerCase() : (word: string) => word
   const sources = SOURCES[lang]
   if (!sources) throw new Error(`No sources configured for "${lang}" in scripts/build-data/sources.ts`)
 
@@ -47,39 +51,60 @@ async function main() {
   const addLemma = (e: RawEntry) => {
     const pos = mapPos(e.pos)
     // An override with its own glosses may target an entry Wiktionary only lists as a form (mi → mío).
-    const forcedByOverride = !!pos && posOverride(e.word)?.pos === pos && !!posOverride(e.word)?.glosses
-    if (pos && (isLemmaEntry(e) || forcedByOverride)) lemmas.set(e.word, [...(lemmas.get(e.word) ?? []), e])
+    const forced = posOverride(key(e.word))
+    const forcedByOverride = !!pos && forced?.pos === pos && !!forced?.glosses
+    if (pos && (isLemmaEntry(e) || forcedByOverride)) lemmas.set(key(e.word), [...(lemmas.get(key(e.word)) ?? []), e])
   }
   console.log("Reading Wiktionary (pass 1)…")
   await streamEntries(
     files.wiktionary,
-    (w) => freqSet.has(w),
+    (w) => freqSet.has(key(w)),
     (e) => {
       addLemma(e)
-      const targets = formOfTargets(e)
-      if (targets.length) formOf.set(e.word, [...(formOf.get(e.word) ?? []), ...targets])
+      const targets = formOfTargets(e).map(key)
+      if (targets.length) formOf.set(key(e.word), [...(formOf.get(key(e.word)) ?? []), ...targets])
     }
   )
 
   // Pass 2: lemmas of inflected forms whose dictionary form isn't itself in the frequency list.
-  const overrideLemmas = Object.values(overrides).flatMap((o) => ("lemma" in o ? [o.lemma] : []))
+  const overrideLemmas = Object.values(overrides).flatMap((o) => ("lemma" in o ? [key(o.lemma)] : []))
   const missing = new Set([...[...formOf.values()].flat(), ...overrideLemmas].filter((t) => !lemmas.has(t)))
   console.log(`Reading Wiktionary (pass 2, ${missing.size} lemmas)…`)
-  await streamEntries(files.wiktionary, (w) => missing.has(w), addLemma)
+  await streamEntries(files.wiktionary, (w) => missing.has(key(w)), addLemma)
 
   // A surface form's lemma (tengo → tener). A spelling that is itself a lemma wins (casa = house, not a form of
   // casar) unless overrides.ts says otherwise.
+  // Where a lowercase and a capitalised entry share a spelling (ich / Ich "ego", tag "meet!" / Tag "day"), how the
+  // word is written in real sentences decides. Only for languages that capitalise nouns.
+  const capitalised = LANGUAGES[lang]?.capitalisedNouns
+    ? mostlyCapitalised(readTargetSentences(files.sentences, sources.sentences.file))
+    : new Set<string>()
+  // Capitalised noun entries (formal Sie is capitalised too, but stays with sie).
+  const upperCase = (k: string) => lemmas.get(k)?.filter((e) => e.word !== k && mapPos(e.pos) === "noun") ?? []
+  const sameCase = (k: string) => lemmas.get(k)?.filter((e) => e.word === k) ?? []
+  // The entries a spelling means: the capitalised noun when that's how it's written, else the exact spelling,
+  // else whatever exists (haus → Haus).
+  const meant = (k: string) => {
+    if (capitalised.has(k) && upperCase(k).length) return upperCase(k)
+    return sameCase(k).length ? sameCase(k) : (lemmas.get(k) ?? [])
+  }
   const resolve = (form: string) => {
     const o = own(overrides, form)
-    const lemma = o && "lemma" in o ? o.lemma : lemmas.has(form) ? form : formOf.get(form)?.find((t) => lemmas.has(t))
+    const lemma =
+      o && "lemma" in o
+        ? key(o.lemma)
+        : (capitalised.has(form) && upperCase(form).length) || sameCase(form).length
+          ? form
+          : (formOf.get(form)?.find((t) => lemmas.has(t)) ?? (lemmas.has(form) ? form : undefined))
     return lemma && lemmas.has(lemma) ? lemma : undefined
   }
   // The entry used for a lemma. Part-of-speech overrides are keyed by lemma, so they also apply when reached via a
   // form (puede → poder).
   const entryFor = (lemma: string) => {
-    const candidates = lemmas.get(lemma)!
+    const candidates = meant(lemma)
     const po = posOverride(lemma)
-    const forced = po && candidates.find((e) => mapPos(e.pos) === po.pos)
+    // An override may pick the capitalised entry over a lowercase one (zeit → the noun Zeit).
+    const forced = po && lemmas.get(lemma)!.find((e) => mapPos(e.pos) === po.pos)
     if (po && !forced) console.warn(`Override ${lemma} → ${po.pos}: no such entry`)
     return { entry: forced ?? bestEntry(candidates), glosses: po?.glosses }
   }
@@ -102,12 +127,12 @@ async function main() {
   const sentenceAudio = loadSentenceRecordings(files.sentenceAudio)
 
   // Short meaning of any word: shown under example sentences, and used to prefer literal translations.
-  const pickedLemmas = new Set(picked.map((w) => w.lemma))
+  const pickedLemmas = new Set(picked.map((w) => key(w.lemma)))
   const curated = SHORT_GLOSSES[lang] ?? {}
   // Like resolve(), but a spelling that's also a form of a top word means that word (dije → decir, not "locket").
   const glossLemma = (token: string) => {
     const o = own(overrides, token)
-    if (o && "lemma" in o) return o.lemma
+    if (o && "lemma" in o) return key(o.lemma)
     if (lemmas.has(token) && pickedLemmas.has(token)) return token
     return formOf.get(token)?.find((t) => pickedLemmas.has(t)) ?? resolve(token)
   }
@@ -116,13 +141,18 @@ async function main() {
     if (!glossCache.has(token)) {
       const lemma = glossLemma(token)
       let g = own(curated, token)
-      if (!g && lemma) {
+      // Dictionary form as Wiktionary spells it (Haus, not haus).
+      let shown = lemma
+      if (lemma) {
         const { entry, glosses } = entryFor(lemma)
-        const all = glosses ?? (entry ? usableGlosses(entry) : [])
-        const best = translatingGloss(all) ?? all[0]
-        g = best && shortGloss(best)
+        if (entry) shown = entry.word
+        if (!g) {
+          const all = glosses ?? (entry ? usableGlosses(entry) : [])
+          const best = translatingGloss(all) ?? all[0]
+          g = best && shortGloss(best)
+        }
       }
-      glossCache.set(token, g ? { g, ...(lemma && lemma !== token && { l: lemma }) } : undefined)
+      glossCache.set(token, g ? { g, ...(lemma && lemma !== token && shown && { l: shown }) } : undefined)
     }
     return glossCache.get(token)
   }
@@ -131,7 +161,14 @@ async function main() {
   // Everyday-speech scoring: rank = spoken frequency; the top ~1,000 forms are the basics, ~3,000 common vocabulary.
   const rank = new Map(freq.map((f, i) => [f, i] as [string, number]))
   const droppedPronouns = new Set(LANGUAGES[lang]?.droppedPronouns ?? [])
-  const everyday = { rank, commonCutoff: 3000, basicCutoff: 1000, droppedPronouns, gloss: (t: string) => lookup(t)?.g }
+  const everyday = {
+    rank,
+    commonCutoff: 3000,
+    basicCutoff: 1000,
+    droppedPronouns,
+    gloss: (t: string) => lookup(t)?.g,
+    capitalisedNouns: LANGUAGES[lang]?.capitalisedNouns,
+  }
   const sentences = loadSentences(files.sentences, sources.sentences.file, sentenceAudio, everyday)
   // A spelling shared by several words (como: "like" and "I eat") is a weak match for all but its own lemma.
   const owners = new Map<string, number>()

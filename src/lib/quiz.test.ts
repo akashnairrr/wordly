@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 import { buildQuiz, grade, normalizeAnswer, type QuizQuestion } from "./quiz"
 import { bueno, casa, es, pool, seeded, tener } from "./test-fixtures"
+import { getLanguage } from "./languages"
 import type { Word } from "./types"
 
 describe("buildQuiz / grade", () => {
@@ -31,6 +32,21 @@ describe("buildQuiz / grade", () => {
       assert.ok(kinds("bueno").includes("gendered-form"))
       assert.ok(kinds("tener").some((k) => k === "conjugation" || k === "cloze"))
     }
+  })
+
+  it("German nouns get a three-way der / die / das question, neuter included", () => {
+    const haus: Word = { ...casa, id: "haus", lemma: "Haus", gender: "n", forms: { plural: "Häuser" } }
+    for (let seed = 1; seed < 20; seed++) {
+      const q = buildQuiz([haus], pool, getLanguage("de"), { speech: false, rng: seeded(seed) }).find(
+        (q) => q.kind === "gender"
+      )
+      if (!q) continue
+      assert.deepEqual(q.options, ["der", "die", "das"])
+      assert.equal(q.answer, "das")
+      assert.equal(q.reveal.text, "das Haus")
+      return
+    }
+    assert.fail("no gender question for a neuter noun")
   })
 
   it("cloze blanks the word and keeps its original casing as the answer", () => {
