@@ -22,7 +22,7 @@ pnpm check        # lint + format check + typecheck + tests (what CI runs)
 
 ## Contributing
 
-`.github/workflows/ci.yml` runs `pnpm check` on every push to any branch. `main` is protected: changes land through a pull request with one approval, a green `check`, signed commits, and **squash and merge** only, so history stays linear (one commit per PR, titled after the PR). The repo owner can bypass.
+`.github/workflows/ci.yml` runs `pnpm check` on every push to any branch. Files are kebab-case (`word-card.tsx`, hooks `use-*.ts`), component props are an `interface <Component>Props`, and PR titles follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `build:`, `chore:` …) since each PR lands as one squashed commit named after it. `main` is protected: changes land through a pull request with one approval, a green `check`, signed commits, and **squash and merge** only, so history stays linear (one commit per PR, titled after the PR). The repo owner can bypass.
 
 ## Project layout
 
@@ -35,9 +35,11 @@ scripts/build-data/   offline data pipeline (pnpm data)
   sentences.ts        Tatoeba example sentence matching
 public/data/<lang>/   generated: index.json + words/<id>.json (committed)
 src/lib/              types, language registry, quiz/session/progress logic, speech, data loading
-src/components/       WordCard, ConjugationTable, FormsTable, ExampleList, Quiz, SessionSizePicker, … (MUI)
-src/theme.ts          MUI theme: Merino / Rock Blue / Venice Blue palette, Fraunces + Jost, flat components
-src/app/[lang]/       Today (home), session, words library + word pages, progress/settings
+src/hooks/            use-index, use-progress (React hooks over src/lib)
+src/components/       word-card, conjugation-table, forms-table, example-list, quiz, session-size-picker, … (MUI)
+src/theme.ts          design tokens: Merino / Rock Blue / Venice Blue palette, shared *Sx style objects
+src/mui-theme.ts      MUI theme built from them: Fraunces + Jost, flat components
+src/app/[lang]/       Today (home), session, words library + word pages, progress/settings (each route's *-view.tsx)
 ```
 
 ## Word data

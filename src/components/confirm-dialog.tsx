@@ -1,29 +1,25 @@
-"use client";
+"use client"
 
-import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
-import { useState } from "react";
-import { C } from "@/theme";
+import Button from "@mui/material/Button"
+import Dialog from "@mui/material/Dialog"
+import DialogActions from "@mui/material/DialogActions"
+import DialogContent from "@mui/material/DialogContent"
+import DialogContentText from "@mui/material/DialogContentText"
+import DialogTitle from "@mui/material/DialogTitle"
+import { useState } from "react"
+import { C } from "@/theme"
+
+interface ConfirmDialogProps {
+  trigger: string
+  title: string
+  body: string
+  confirmLabel: string
+  onConfirm: () => void
+}
 
 /** A trigger button plus a modal confirmation (focus trapping and Esc handled by MUI). */
-export function ConfirmDialog({
-  trigger,
-  title,
-  body,
-  confirmLabel,
-  onConfirm,
-}: {
-  trigger: string;
-  title: string;
-  body: string;
-  confirmLabel: string;
-  onConfirm: () => void;
-}) {
-  const [open, setOpen] = useState(false);
+export function ConfirmDialog({ trigger, title, body, confirmLabel, onConfirm }: ConfirmDialogProps) {
+  const [open, setOpen] = useState(false)
   return (
     <>
       <Button variant="text" onClick={() => setOpen(true)}>
@@ -43,8 +39,8 @@ export function ConfirmDialog({
           <Button
             color="error"
             onClick={() => {
-              setOpen(false);
-              onConfirm();
+              setOpen(false)
+              onConfirm()
             }}
           >
             {confirmLabel}
@@ -52,5 +48,5 @@ export function ConfirmDialog({
         </DialogActions>
       </Dialog>
     </>
-  );
+  )
 }
