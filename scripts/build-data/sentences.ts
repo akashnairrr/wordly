@@ -86,10 +86,6 @@ function measure(text: string, en: string, everyday: Everyday): SentenceStats {
   }
 }
 
-/**
- * Reads manythings "English<TAB>Target<TAB>attribution" lines from inside the zip. The attribution ends with the
- * target sentence's Tatoeba id ("… #2877272 (CM) & #4986655 (user)"), used to attach a human recording.
- */
 /** Target-language side of the manythings file (English<TAB>Target<TAB>attribution). */
 export function readTargetSentences(zipPath: string, file: string): string[] {
   const raw = execFileSync("unzip", ["-p", zipPath, file], { maxBuffer: 1 << 30 }).toString("utf8")
@@ -113,6 +109,10 @@ export function mostlyCapitalised(texts: string[]): Set<string> {
   return new Set([...counts].filter(([, c]) => c.upper > c.lower).map(([k]) => k))
 }
 
+/**
+ * Reads manythings "English<TAB>Target<TAB>attribution" lines from inside the zip. The attribution ends with the
+ * target sentence's Tatoeba id ("… #2877272 (CM) & #4986655 (user)"), used to attach a human recording.
+ */
 export function loadSentences(
   zipPath: string,
   file: string,

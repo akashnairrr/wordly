@@ -10,11 +10,11 @@ import { useEffect, useState } from "react"
 import { getLanguage } from "@/lib/languages"
 import { saveLastLanguage } from "@/lib/last-language"
 import { C, columnSx, displayFontSx, Z } from "@/theme"
+import { ConfirmModal } from "./confirm-dialog"
+import { LanguageSelect } from "./language-select"
 
 // Small phones (iPhone SE, 320px): logo, three links and the language flag only just fit.
 const TINY = "@media (max-width: 359.95px)"
-import { ConfirmModal } from "./confirm-dialog"
-import { LanguageSelect } from "./language-select"
 
 interface HeaderProps {
   lang: string
