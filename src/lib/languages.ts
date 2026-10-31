@@ -4,6 +4,8 @@ export interface Language {
   code: string;
   name: string;
   nativeName: string;
+  /** ISO 3166 country whose flag represents the language (see components/Flag.tsx). */
+  country: string;
   /** BCP-47 locales accepted for text-to-speech, preferred first. */
   ttsLocales: string[];
   /** Short phrase for testing the selected voice. */
@@ -22,6 +24,7 @@ export const LANGUAGES: Record<string, Language> = {
     code: "es",
     name: "Spanish",
     nativeName: "Español",
+    country: "ES",
     ttsLocales: ["es-ES", "es-MX", "es-US", "es"],
     sample: "Hola, ¿qué tal? Estoy aprendiendo español.",
     greeting: "¡Hola!",

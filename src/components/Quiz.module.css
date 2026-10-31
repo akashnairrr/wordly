@@ -96,9 +96,9 @@
 }
 
 .right {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--on-accent);
+  border-color: var(--tint);
+  background: var(--tint-soft);
+  color: var(--ink);
   font-weight: 600;
 }
 

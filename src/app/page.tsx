@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Flag } from "@/components/Flag";
 import { LANGUAGES } from "@/lib/languages";
 import styles from "./landing.module.css";
 
@@ -20,8 +21,11 @@ export default function LanguagePicker() {
           {Object.values(LANGUAGES).map((l) => (
             <li key={l.code}>
               <Link href={`/${l.code}/`} className={styles.language}>
-                <span className="display" lang={l.code}>
-                  {l.nativeName}
+                <span className={styles.name}>
+                  <Flag country={l.country} height={28} />
+                  <span className={`display ${styles.native}`} lang={l.code}>
+                    {l.nativeName}
+                  </span>
                 </span>
                 <span className="muted">{l.name}</span>
               </Link>

@@ -36,5 +36,8 @@ export const OVERRIDES: Record<string, Record<string, Override>> = {
     vino: { lemma: "venir" },
     ve: { lemma: "ver" },
     vamos: { lemma: "ir" },
+    creo: { lemma: "creer" },
+    cree: { lemma: "creer" },
+    crees: { lemma: "creer" },
   },
 };

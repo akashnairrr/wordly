@@ -54,7 +54,11 @@ Conjugation parsing in `normalize.ts` relies on Wiktionary's mood/tense/person t
 
 ## Deploy (GitHub Pages)
 
-`pnpm build` writes a fully static site to `out/`. For a project page (`user.github.io/wordly`), build with `NEXT_PUBLIC_BASE_PATH=/wordly pnpm build`.
+`.github/workflows/deploy.yml` tests, builds and publishes the static export on every push to `main`, to `https://<user>.github.io/<repo>/`. It sets `NEXT_PUBLIC_BASE_PATH` to the repo path so links and data fetches work under that prefix.
+
+One-time setup: repo **Settings → Pages → Source: GitHub Actions** (or `gh api -X POST repos/<user>/<repo>/pages -f build_type=workflow`). Pages is free for public repos.
+
+To preview that build locally: `NEXT_PUBLIC_BASE_PATH=/wordly pnpm build`, then serve a folder containing `out/` renamed to `wordly/`.
 
 ## Licensing
 

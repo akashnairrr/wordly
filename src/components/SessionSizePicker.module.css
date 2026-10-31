@@ -18,7 +18,7 @@
 .range {
   width: 100%;
   margin: 14px 0 6px;
-  accent-color: var(--accent);
+  accent-color: var(--tint);
 }
 
 .scale {
@@ -53,7 +53,7 @@
 }
 
 .moderate {
-  background: var(--tint);
+  background: var(--tint-mid);
   color: var(--on-tint);
 }
 
