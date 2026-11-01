@@ -25,9 +25,9 @@ export const SOURCES: Record<string, Sources> = {
     sentences: { url: "https://www.manythings.org/anki/ita-eng.zip", file: "ita.txt" },
     lingualibre: "LL-Q652_(ita)-",
   },
-  // Brazilian subtitles: Brazilian Portuguese is what most learners want.
+  // European Portuguese subtitles.
   pt: {
-    frequency: "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/pt_br/pt_br_50k.txt",
+    frequency: "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/pt/pt_50k.txt",
     wiktionary: "https://kaikki.org/dictionary/Portuguese/kaikki.org-dictionary-Portuguese.jsonl.gz",
     sentences: { url: "https://www.manythings.org/anki/por-eng.zip", file: "por.txt" },
     lingualibre: "LL-Q5146_(por)-",

@@ -37,6 +37,11 @@ export interface Language {
     agreeing: string
     plural: (participle: string) => string
   }
+  /**
+   * Teach one country's usage: Wiktionary senses, forms and pronunciations tagged only for a `drop` country are left
+   * out unless also tagged `keep` (data pipeline).
+   */
+  region?: { keep: string; drop: string[] }
   /** Nouns are written with a capital (German), so a capital mid-sentence isn't a sign of a name (data pipeline). */
   capitalisedNouns?: boolean
   personLabels: Record<Person, string>
@@ -85,13 +90,18 @@ export const LANGUAGES: Record<string, Language> = {
     code: "pt",
     name: "Portuguese",
     nativeName: "Português",
-    // Brazilian Portuguese: the word list comes from Brazilian subtitles.
-    country: "BR",
-    ttsLocales: ["pt-BR", "pt-PT", "pt"],
-    sample: "Oi, tudo bem? Estou aprendendo português.",
-    greeting: "Oi!",
-    // Brazilian Portuguese usually says the subject (Eu acho, Você quer…).
-    droppedPronouns: [],
+    // European Portuguese: the word list comes from Portuguese subtitles.
+    country: "PT",
+    // Portugal voices only: Brazilian ones would otherwise win on quality.
+    ttsLocales: ["pt-PT"],
+    sample: "Olá, tudo bem? Estou a aprender português.",
+    greeting: "Olá!",
+    // European Portuguese usually leaves the subject out (Acho que sim, Queres vir?).
+    droppedPronouns: ["eu", "tu", "você", "nós"],
+    region: {
+      keep: "Portugal",
+      drop: ["Brazil", "South-Brazil", "Northeast-Brazil", "Rio-de-Janeiro", "São-Paulo", "Caipira", "Minas-Gerais"],
+    },
     articles: { m: "o", f: "a" },
     personLabels: {
       "1s": "eu",
