@@ -27,6 +27,7 @@ async function main() {
   // Languages that capitalise nouns are matched case-insensitively: the frequency list is lowercase, Wiktionary writes
   // Haus. Maps are keyed by this; the Word keeps Wiktionary's spelling. Elsewhere spelling must match exactly, so
   // capitalised entries (Spanish Jesús, OK) stay out.
+  const region = LANGUAGES[lang]?.region
   const key = LANGUAGES[lang]?.capitalisedNouns ? (word: string) => word.toLowerCase() : (word: string) => word
   const sources = SOURCES[lang]
   if (!sources) throw new Error(`No sources configured for "${lang}" in scripts/build-data/sources.ts`)
@@ -49,6 +50,7 @@ async function main() {
   const lemmas = new Map<string, RawEntry[]>()
   const formOf = new Map<string, string[]>()
   const gerunds = new Set<string>()
+  const seeOther = new Set<string>()
   const addLemma = (e: RawEntry) => {
     const pos = mapPos(e.pos)
     // An override with its own glosses may target an entry Wiktionary only lists as a form (mi → mío).
@@ -65,14 +67,29 @@ async function main() {
       const targets = formOfTargets(e).map(key)
       if (targets.length) formOf.set(key(e.word), [...(formOf.get(key(e.word)) ?? []), ...targets])
       if (e.senses?.some((s) => s.form_of && s.tags?.includes("gerund"))) gerunds.add(key(e.word))
-    }
+      for (const s of e.senses ?? []) if (s.see) seeOther.add(key(s.see))
+    },
+    region
   )
 
   // Pass 2: lemmas of inflected forms whose dictionary form isn't itself in the frequency list.
   const overrideLemmas = Object.values(overrides).flatMap((o) => ("lemma" in o ? [key(o.lemma)] : []))
-  const missing = new Set([...[...formOf.values()].flat(), ...overrideLemmas].filter((t) => !lemmas.has(t)))
+  const missing = new Set(
+    [...[...formOf.values()].flat(), ...overrideLemmas, ...seeOther].filter((t) => !lemmas.has(t))
+  )
   console.log(`Reading Wiktionary (pass 2, ${missing.size} lemmas)…`)
-  await streamEntries(files.wiktionary, (w) => missing.has(key(w)), addLemma)
+  await streamEntries(files.wiktionary, (w) => missing.has(key(w)), addLemma, region)
+  // Senses that point at another entry take that entry's meanings (camião: "truck", from caminhão).
+  for (const entries of lemmas.values())
+    for (const e of entries)
+      if (e.senses?.some((s) => s.see))
+        e.senses = e.senses.flatMap((s) =>
+          s.see
+            ? (lemmas.get(key(s.see)) ?? [])
+                .filter((t) => t.pos === e.pos)
+                .flatMap((t) => t.senses?.filter((ts) => !ts.see) ?? [])
+            : [s]
+        )
 
   // A surface form's lemma (tengo → tener). A spelling that is itself a lemma wins (casa = house, not a form of
   // casar) unless overrides.ts says otherwise.
@@ -234,7 +251,8 @@ async function main() {
     (e) => {
       if (isLemmaEntry(e))
         phraseEntries.set(e.word.toLowerCase(), [...(phraseEntries.get(e.word.toLowerCase()) ?? []), e])
-    }
+    },
+    region
   )
   const phrases = new Map<string, string>()
   for (const [key, entries] of phraseEntries) {
