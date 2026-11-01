@@ -36,17 +36,22 @@ export default async function BasicsPage({ params }: PageProps<"/[lang]/basics">
               p: 0,
               m: 0,
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
               gap: 1.5,
             }}
           >
             {alphabet.map((l) => (
               <Paper component="li" key={l.letter} variant="outlined" sx={{ p: 1.5 }}>
                 <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-                  <Box component="span" lang={lang} sx={{ fontSize: 26, fontWeight: 700, color: C.venice }}>
+                  <Box
+                    component="span"
+                    lang={lang}
+                    sx={{ fontSize: 26, fontWeight: 700, color: C.venice, whiteSpace: "nowrap" }}
+                  >
                     {l.letter}
                   </Box>
-                  <SpeakButton text={l.example} size="sm" />
+                  {/* A letter on its own is read out by its name in the page language. */}
+                  <SpeakButton text={l.say ?? l.letter.charAt(0)} size="sm" />
                 </Box>
                 <Box component="p" sx={{ my: 0.5, fontSize: 14 }}>
                   {l.sound}
