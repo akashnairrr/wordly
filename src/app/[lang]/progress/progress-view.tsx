@@ -109,6 +109,7 @@ export function ProgressView({ lang }: ProgressViewProps) {
           { label: "Words studied", value: learnedIds.length },
           { label: "Sessions", value: progress.history.length },
           { label: "Day streak", value: progress.streak },
+          { label: "XP", value: progress.xp },
         ]}
       />
       {total > 0 && (

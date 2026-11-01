@@ -28,6 +28,13 @@ export function wordStatus(id: string, p: Progress): WordStatus {
   return l.wrong > 0 && l.wrong >= l.correct ? "practice" : "studied"
 }
 
+/** Strength meter, 0–4: 0 for words not studied (or skipped); words needing practice sit at 1, each net right answer adds a bar. */
+export function strength(id: string, p: Progress): number {
+  const l = p.learned[id]
+  if (!l || p.skipped[id]) return 0
+  return Math.min(4, Math.max(1, 1 + l.correct - l.wrong))
+}
+
 /** The next most frequent words never studied or skipped. */
 export function pickNewWords(
   index: IndexEntry[],

@@ -124,6 +124,7 @@ export function HomeView({ lang }: HomeViewProps) {
             value: learned.length,
           },
           { label: "Day streak", value: progress.streak },
+          { label: "XP", value: progress.xp },
           { label: "Quiz accuracy", value: answers ? `${Math.round((correct / answers) * 100)}%` : "–" },
         ]}
       />
@@ -167,7 +168,7 @@ export function HomeView({ lang }: HomeViewProps) {
             </>
           ) : (
             <Box component="p" sx={{ mt: 1, mb: 2.25 }}>
-              Words you study come back here for revision, weakest first.
+              Words you study come back here for revision.
             </Box>
           )}
         </Paper>

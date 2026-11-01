@@ -8,11 +8,12 @@ const key = (lang: string) => `wordly:v1:${lang}`
 export function emptyProgress(): Progress {
   return {
     version: 1,
-    settings: { sessionSize: MIN_SIZE, rate: RATES.normal },
+    settings: { sessionSize: MIN_SIZE, pageSize: 100, rate: RATES.normal, sound: true },
     learned: {},
     skipped: {},
     history: [],
     streak: 0,
+    xp: 0,
     lastDay: null,
   }
 }
@@ -56,12 +57,13 @@ export function parseBackup(json: string): Progress {
 // Local calendar day (YYYY-MM-DD), so the streak follows the learner's midnight, not UTC's.
 const day = (d: Date) => d.toLocaleDateString("en-CA")
 
-/** Applies a finished lesson or review: marks words studied, counts answers, logs history, updates streak. */
+/** Applies a finished lesson or review: marks words studied, counts answers, logs history, updates streak and XP. */
 export function recordSession(
   p: Progress,
   results: { wordId: string; correct: boolean }[],
   kind: "lesson" | "review" = "lesson",
-  now = new Date()
+  now = new Date(),
+  xp = 0
 ): Progress {
   const learned = { ...p.learned }
   for (const r of results) {
@@ -82,6 +84,7 @@ export function recordSession(
     ...p,
     learned,
     streak,
+    xp: p.xp + xp,
     lastDay: today,
     history: [{ date: now.toISOString(), words, score, total: results.length, kind }, ...p.history],
   }

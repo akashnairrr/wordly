@@ -59,7 +59,12 @@ export function LanguageSelect({ value, onChange, size = "large", sx }: Language
             {
               minHeight: 36,
               borderRadius: 999,
-              "& .MuiSelect-select": { py: 0.75, pl: { xs: 1, sm: 1.75 }, pr: { xs: "8px !important", sm: 4 } },
+              // !important beats MUI's more specific input padding; without it the name runs under the arrow.
+              "& .MuiSelect-select": {
+                py: 0.75,
+                pl: { xs: 1, sm: 1.75 },
+                pr: { xs: "8px !important", sm: "32px !important" },
+              },
               "& .MuiSelect-icon": { display: { xs: "none", sm: "block" } },
             },
         ...(Array.isArray(sx) ? sx : [sx ?? {}]),

@@ -72,8 +72,12 @@ export interface IndexEntry {
 
 export interface Settings {
   sessionSize: number
+  /** Words per page on the word list. */
+  pageSize: number
   voiceURI?: string
   rate: number
+  /** Quiz sound effects. */
+  sound: boolean
 }
 
 export interface WordProgress {
@@ -92,5 +96,7 @@ export interface Progress {
   skipped: Record<string, string>
   history: { date: string; words: string[]; score: number; total: number; kind?: "lesson" | "review" }[]
   streak: number
+  /** Points earned in quizzes, all time. */
+  xp: number
   lastDay: string | null
 }
