@@ -16,7 +16,8 @@ const palette = (p: typeof LIGHT) => ({
 })
 
 export const theme = createTheme({
-  // Follows the system until the header toggle picks one; the choice is kept in localStorage (mui-mode).
+  // Light until the toggle switches to dark; the choice is kept in localStorage (mui-mode). Default mode is set in
+  // ThemeRegistry and the root layout's InitColorSchemeScript.
   cssVariables: { colorSchemeSelector: "class" },
   colorSchemes: { light: { palette: palette(LIGHT) }, dark: { palette: palette(DARK) } },
   shape: { borderRadius: RADIUS_SM },

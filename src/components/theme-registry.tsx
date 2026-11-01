@@ -13,7 +13,8 @@ interface ThemeRegistryProps {
 export function ThemeRegistry({ children }: ThemeRegistryProps) {
   return (
     <AppRouterCacheProvider>
-      <ThemeProvider theme={theme}>
+      {/* Light unless the learner switched to dark; must match InitColorSchemeScript in the root layout. */}
+      <ThemeProvider theme={theme} defaultMode="light">
         {/* Sets color-scheme, so form controls and scrollbars match the page. */}
         <CssBaseline enableColorScheme />
         {children}
