@@ -29,7 +29,9 @@ import { useProgress } from "@/hooks/use-progress"
 import { stripAccents, wordHref } from "@/lib/words"
 import { C, displayFontSx, numSx } from "@/theme"
 
-const PAGE = 100
+const PAGE_SIZES = [25, 50, 75, 100]
+// A filter's label and its select wrap to the next line together.
+const FIELD = { display: "flex", alignItems: "center", gap: 1.25 } as const
 
 type StatusFilter = "all" | WordStatus
 const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
@@ -59,7 +61,7 @@ interface WordsViewProps {
 }
 
 export function WordsView({ lang }: WordsViewProps) {
-  const [progress] = useProgress(lang)
+  const [progress, update] = useProgress(lang)
   const { index, error } = useIndex(lang)
   const params = useSearchParams()
   const [status, setStatus] = useState<StatusFilter>(
@@ -95,7 +97,9 @@ export function WordsView({ lang }: WordsViewProps) {
       (pos === "all" || w.pos === pos) &&
       (!q || fold(w.lemma).includes(q) || fold(w.gloss).includes(q))
   )
-  const pages = Math.max(1, Math.ceil(list.length / PAGE))
+  // A size from an old or hand-edited backup falls back to the largest.
+  const size = PAGE_SIZES.includes(progress.settings.pageSize) ? progress.settings.pageSize : 100
+  const pages = Math.max(1, Math.ceil(list.length / size))
   // Filter changes go back to page 1; a page left over from a longer list falls back to the last one.
   const current = Math.min(page, pages)
 
@@ -185,56 +189,87 @@ export function WordsView({ lang }: WordsViewProps) {
         ))}
       </ToggleButtonGroup>
       <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.25, mt: 1.5, mb: 0.5 }}>
-        <Box component="label" htmlFor="level" sx={{ fontSize: 14, color: C.muted }}>
-          Level
+        <Box sx={FIELD}>
+          <Box component="label" htmlFor="level" sx={{ fontSize: 14, color: C.muted }}>
+            Level
+          </Box>
+          <TextField
+            select
+            size="small"
+            id="level"
+            value={level}
+            onChange={(e) => {
+              setLevel(e.target.value)
+              syncUrl({ level: e.target.value, page: "" })
+              setPage(1)
+            }}
+            slotProps={{ select: { native: true } }}
+            sx={{ "& .MuiOutlinedInput-root": { minHeight: 36, borderRadius: 999 } }}
+          >
+            <option value="all">All levels</option>
+            {LEVELS.map((l) => {
+              const { done } = levelProgress(index, progress, l)
+              return (
+                <option key={l.n} value={String(l.n)}>
+                  {levelLabel(l)}
+                  {done > 0 && ` (${done} studied)`}
+                </option>
+              )
+            })}
+          </TextField>
         </Box>
-        <TextField
-          select
-          size="small"
-          id="level"
-          value={level}
-          onChange={(e) => {
-            setLevel(e.target.value)
-            syncUrl({ level: e.target.value, page: "" })
-            setPage(1)
-          }}
-          slotProps={{ select: { native: true } }}
-          sx={{ "& .MuiOutlinedInput-root": { minHeight: 36, borderRadius: 999 } }}
-        >
-          <option value="all">All levels</option>
-          {LEVELS.map((l) => {
-            const { done } = levelProgress(index, progress, l)
-            return (
-              <option key={l.n} value={String(l.n)}>
-                {levelLabel(l)}
-                {done > 0 && ` (${done} studied)`}
+        <Box sx={FIELD}>
+          <Box component="label" htmlFor="pos" sx={{ fontSize: 14, color: C.muted }}>
+            Part of speech
+          </Box>
+          <TextField
+            select
+            size="small"
+            id="pos"
+            value={pos}
+            onChange={(e) => {
+              setPos(e.target.value as Pos | "all")
+              syncUrl({ pos: e.target.value as Pos | "all", page: "" })
+              setPage(1)
+            }}
+            slotProps={{ select: { native: true } }}
+            sx={{ "& .MuiOutlinedInput-root": { minHeight: 36, borderRadius: 999 } }}
+          >
+            <option value="all">Any</option>
+            {POS_FILTERS.map((p) => (
+              <option key={p} value={p}>
+                {POS_LABELS[p]}
               </option>
-            )
-          })}
-        </TextField>
-        <Box component="label" htmlFor="pos" sx={{ fontSize: 14, color: C.muted }}>
-          Part of speech
+            ))}
+          </TextField>
         </Box>
-        <TextField
-          select
-          size="small"
-          id="pos"
-          value={pos}
-          onChange={(e) => {
-            setPos(e.target.value as Pos | "all")
-            syncUrl({ pos: e.target.value as Pos | "all", page: "" })
-            setPage(1)
-          }}
-          slotProps={{ select: { native: true } }}
-          sx={{ "& .MuiOutlinedInput-root": { minHeight: 36, borderRadius: 999 } }}
-        >
-          <option value="all">Any</option>
-          {POS_FILTERS.map((p) => (
-            <option key={p} value={p}>
-              {POS_LABELS[p]}
-            </option>
-          ))}
-        </TextField>
+        <Box sx={FIELD}>
+          <Box component="label" htmlFor="page-size" sx={{ fontSize: 14, color: C.muted }}>
+            Per page
+          </Box>
+          <TextField
+            select
+            size="small"
+            id="page-size"
+            value={size}
+            onChange={(e) => {
+              const next = Number(e.target.value)
+              // Stay on the page that holds the first word currently shown.
+              const p = Math.floor(((current - 1) * size) / next) + 1
+              update((s) => ({ ...s, settings: { ...s.settings, pageSize: next } }))
+              setPage(p)
+              syncUrl({ page: p > 1 ? String(p) : "" })
+            }}
+            slotProps={{ select: { native: true } }}
+            sx={{ "& .MuiOutlinedInput-root": { minHeight: 36, borderRadius: 999 } }}
+          >
+            {PAGE_SIZES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </TextField>
+        </Box>
       </Box>
 
       {list.length === 0 ? (
@@ -255,7 +290,7 @@ export function WordsView({ lang }: WordsViewProps) {
         </EmptyState>
       ) : (
         <List component="ol" id="word-list" disablePadding sx={{ mt: 1, scrollMarginTop: 80 }}>
-          {list.slice((current - 1) * PAGE, current * PAGE).map((w) => {
+          {list.slice((current - 1) * size, current * size).map((w) => {
             const s = statuses.get(w.id)!
             return (
               <li key={w.id}>
