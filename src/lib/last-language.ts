@@ -1,4 +1,4 @@
-import { LANGUAGES } from "./languages"
+import { LANGUAGE_LIST } from "./languages"
 
 // The language last used on this device, so the landing page can offer to continue in it.
 const KEY = "wordly:language"
@@ -15,7 +15,7 @@ export function saveLastLanguage(code: string) {
 export function readLastLanguage(): string | null {
   try {
     const code = localStorage.getItem(KEY)
-    return code && LANGUAGES[code] ? code : null
+    return code && LANGUAGE_LIST.some((l) => l.code === code) ? code : null
   } catch {
     return null
   }

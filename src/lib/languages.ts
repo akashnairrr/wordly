@@ -46,6 +46,8 @@ export interface Language {
   region?: { keep: string; drop: string[] }
   /** Nouns are written with a capital (German), so a capital mid-sentence isn't a sign of a name (data pipeline). */
   capitalisedNouns?: boolean
+  /** Kept for the data pipeline but left out of the app: no pages, not in the pickers. */
+  hidden?: boolean
   personLabels: Record<Person, string>
   /** Tenses shown in the conjugation table, in display order. */
   tenses: { mood: Mood; tense: Tense; label: string }[]
@@ -149,6 +151,9 @@ export const LANGUAGES: Record<string, Language> = {
     nativeName: "Português",
     // European Portuguese: the word list comes from Portuguese subtitles.
     country: "PT",
+    // Until there's a good Portugal voice: Chrome has none, and macOS only a basic one unless an Enhanced voice is
+    // downloaded, so words without a recording (and every letter on the Basics page) sound poor.
+    hidden: true,
     // Portugal voices only: Brazilian ones would otherwise win on quality.
     ttsLocales: ["pt-PT"],
     sample: "Olá, tudo bem? Estou a aprender português.",
@@ -301,8 +306,10 @@ function italianArticle(lemma: string, gender: "m" | "f" | "n"): string {
   return /^(s[^aeiouàèéìòù]|z|gn|ps|pn|x|y)/i.test(lemma) ? "lo " : "il "
 }
 
-/** Languages for pickers, by English name. */
-export const LANGUAGE_LIST: Language[] = Object.values(LANGUAGES).sort((a, b) => a.name.localeCompare(b.name))
+/** Languages the app offers, by English name. */
+export const LANGUAGE_LIST: Language[] = Object.values(LANGUAGES)
+  .filter((l) => !l.hidden)
+  .sort((a, b) => a.name.localeCompare(b.name))
 
 export const POS_LABELS: Record<Pos, string> = {
   noun: "Noun",
