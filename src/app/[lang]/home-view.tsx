@@ -80,7 +80,7 @@ export function HomeView({ lang }: HomeViewProps) {
                 {levelLabel(level)}
               </Box>
               <Box component="span" sx={{ ...numSx, color: C.muted }}>
-                {levelDone.done}/{levelDone.total}
+                {levelDone.done} studied
               </Box>
             </Box>
             <LinearProgress
@@ -121,14 +121,7 @@ export function HomeView({ lang }: HomeViewProps) {
         stats={[
           {
             label: "Words studied",
-            value: (
-              <>
-                {learned.length}
-                <Box component="span" sx={{ fontSize: "0.45em", color: C.muted, fontWeight: 500 }}>
-                  /{index.length}
-                </Box>
-              </>
-            ),
+            value: learned.length,
           },
           { label: "Day streak", value: progress.streak },
           { label: "Quiz accuracy", value: answers ? `${Math.round((correct / answers) * 100)}%` : "–" },
@@ -185,7 +178,7 @@ export function HomeView({ lang }: HomeViewProps) {
           <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 1.5, mb: 1.75 }}>
             <Typography variant="h2">Next up</Typography>
             <TextLink href={`/${lang}/words/`} sx={{ fontSize: 14, color: C.muted }}>
-              All {index.length} words
+              All words
             </TextLink>
           </Box>
           <Box component="ul" sx={{ listStyle: "none", p: 0, m: 0, display: "flex", flexWrap: "wrap", gap: 1.25 }}>

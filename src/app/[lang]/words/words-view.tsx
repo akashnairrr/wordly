@@ -5,6 +5,8 @@ import Button from "@mui/material/Button"
 import LinearProgress from "@mui/material/LinearProgress"
 import List from "@mui/material/List"
 import ListItemButton from "@mui/material/ListItemButton"
+import Pagination from "@mui/material/Pagination"
+import PaginationItem from "@mui/material/PaginationItem"
 import Paper from "@mui/material/Paper"
 import Skeleton from "@mui/material/Skeleton"
 import TextField from "@mui/material/TextField"
@@ -39,8 +41,8 @@ const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
 ]
 const POS_FILTERS: Pos[] = ["noun", "verb", "adj", "adv", "pron", "prep", "conj", "det", "intj"]
 
-/** Mirrors the filters into the URL (?q=&filter=&level=&pos=) so going back to this page restores them. */
-function syncUrl(next: { q?: string; filter?: StatusFilter; level?: string; pos?: Pos | "all" }) {
+/** Mirrors the filters and page into the URL (?q=&filter=&level=&pos=&page=) so going back to this page restores them. */
+function syncUrl(next: { q?: string; filter?: StatusFilter; level?: string; pos?: Pos | "all"; page?: string }) {
   const params = new URLSearchParams(window.location.search)
   for (const [key, value] of Object.entries(next)) {
     if (value && value !== "all") params.set(key, value)
@@ -68,7 +70,7 @@ export function WordsView({ lang }: WordsViewProps) {
     LEVELS.find((l) => String(l.n) === params.get("level")) ? params.get("level")! : "all"
   )
   const [query, setQuery] = useState(params.get("q") ?? "")
-  const [shown, setShown] = useState(PAGE)
+  const [page, setPage] = useState(Math.max(1, Number(params.get("page")) || 1))
 
   // The word page's "← All words" link returns to this exact list.
   useEffect(() => {
@@ -77,7 +79,7 @@ export function WordsView({ lang }: WordsViewProps) {
     } catch {
       // Storage blocked: the back link shows the plain list.
     }
-  }, [lang, query, status, level, pos])
+  }, [lang, query, status, level, pos, page])
 
   if (error) return <EmptyState text={`Could not load words: ${error}`} />
   if (!index || !progress) return <Skeleton sx={{ mt: 3, minHeight: 480 }} />
@@ -93,13 +95,16 @@ export function WordsView({ lang }: WordsViewProps) {
       (pos === "all" || w.pos === pos) &&
       (!q || fold(w.lemma).includes(q) || fold(w.gloss).includes(q))
   )
+  const pages = Math.max(1, Math.ceil(list.length / PAGE))
+  // Filter changes go back to page 1; a page left over from a longer list falls back to the last one.
+  const current = Math.min(page, pages)
 
   return (
     <>
       <Box component="header" sx={{ mt: 3.5 }}>
         <Typography variant="h1">Common words</Typography>
         <Box component="p" sx={{ color: C.muted, mt: 0.75, mb: 0 }}>
-          The {index.length} most spoken words, most frequent first.
+          The most spoken words, most frequent first.
         </Box>
       </Box>
 
@@ -121,8 +126,9 @@ export function WordsView({ lang }: WordsViewProps) {
             {studiedCount}
           </Box>{" "}
           <Box component="span" sx={{ color: C.muted }}>
-            of {index.length} studied
+            studied
           </Box>
+          {/* The bar shows how far along the list you are without saying how long it is. */}
           <LinearProgress value={(studiedCount / index.length) * 100} aria-label="Words studied" sx={{ mt: 1.25 }} />
         </Box>
         <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.25 }}>
@@ -148,8 +154,8 @@ export function WordsView({ lang }: WordsViewProps) {
         value={query}
         onChange={(e) => {
           setQuery(e.target.value)
-          syncUrl({ q: e.target.value })
-          setShown(PAGE)
+          syncUrl({ q: e.target.value, page: "" })
+          setPage(1)
         }}
         slotProps={{ htmlInput: { "aria-label": "Search words" } }}
         sx={{ mt: 2.5 }}
@@ -160,18 +166,21 @@ export function WordsView({ lang }: WordsViewProps) {
         onChange={(_, f: StatusFilter | null) => {
           if (!f) return
           setStatus(f)
-          syncUrl({ filter: f })
-          setShown(PAGE)
+          syncUrl({ filter: f, page: "" })
+          setPage(1)
         }}
         aria-label="Status"
         sx={{ mt: 1, display: "flex" }}
       >
         {STATUS_FILTERS.map((f) => (
           <ToggleButton key={f.id} value={f.id} sx={{ gap: 0.5 }}>
-            {f.label}{" "}
-            <Box component="span" sx={{ ...numSx, color: C.muted, fontWeight: 400 }}>
-              {f.id === "all" ? index.length : count(f.id)}
-            </Box>
+            {f.label}
+            {/* Only counts of the learner's own words: "All" and "Not started" would give away the list's size. */}
+            {f.id !== "all" && f.id !== "new" && (
+              <Box component="span" sx={{ ...numSx, color: C.muted, fontWeight: 400 }}>
+                {count(f.id)}
+              </Box>
+            )}
           </ToggleButton>
         ))}
       </ToggleButtonGroup>
@@ -186,18 +195,19 @@ export function WordsView({ lang }: WordsViewProps) {
           value={level}
           onChange={(e) => {
             setLevel(e.target.value)
-            syncUrl({ level: e.target.value })
-            setShown(PAGE)
+            syncUrl({ level: e.target.value, page: "" })
+            setPage(1)
           }}
           slotProps={{ select: { native: true } }}
           sx={{ "& .MuiOutlinedInput-root": { minHeight: 36, borderRadius: 999 } }}
         >
           <option value="all">All levels</option>
           {LEVELS.map((l) => {
-            const { done, total } = levelProgress(index, progress, l)
+            const { done } = levelProgress(index, progress, l)
             return (
               <option key={l.n} value={String(l.n)}>
-                {levelLabel(l)} ({done}/{total})
+                {levelLabel(l)}
+                {done > 0 && ` (${done} studied)`}
               </option>
             )
           })}
@@ -212,7 +222,8 @@ export function WordsView({ lang }: WordsViewProps) {
           value={pos}
           onChange={(e) => {
             setPos(e.target.value as Pos | "all")
-            syncUrl({ pos: e.target.value as Pos | "all" })
+            syncUrl({ pos: e.target.value as Pos | "all", page: "" })
+            setPage(1)
           }}
           slotProps={{ select: { native: true } }}
           sx={{ "& .MuiOutlinedInput-root": { minHeight: 36, borderRadius: 999 } }}
@@ -224,9 +235,6 @@ export function WordsView({ lang }: WordsViewProps) {
             </option>
           ))}
         </TextField>
-        <Typography variant="body2" component="span" sx={{ ...numSx, ml: "auto" }}>
-          {list.length} shown
-        </Typography>
       </Box>
 
       {list.length === 0 ? (
@@ -238,15 +246,16 @@ export function WordsView({ lang }: WordsViewProps) {
               setStatus("all")
               setPos("all")
               setLevel("all")
-              syncUrl({ q: "", filter: "all", level: "all", pos: "all" })
+              setPage(1)
+              syncUrl({ q: "", filter: "all", level: "all", pos: "all", page: "" })
             }}
           >
             Clear filters
           </Button>
         </EmptyState>
       ) : (
-        <List component="ol" disablePadding sx={{ mt: 1 }}>
-          {list.slice(0, shown).map((w) => {
+        <List component="ol" id="word-list" disablePadding sx={{ mt: 1, scrollMarginTop: 80 }}>
+          {list.slice((current - 1) * PAGE, current * PAGE).map((w) => {
             const s = statuses.get(w.id)!
             return (
               <li key={w.id}>
@@ -294,13 +303,21 @@ export function WordsView({ lang }: WordsViewProps) {
           })}
         </List>
       )}
-      {shown < list.length && (
-        <Button variant="outlined" fullWidth sx={{ mt: 2 }} onClick={() => setShown(shown + PAGE)}>
-          Show more{" "}
-          <Box component="span" sx={numSx}>
-            ({list.length - shown} left)
-          </Box>
-        </Button>
+      {pages > 1 && (
+        <Pagination
+          page={current}
+          count={pages}
+          onChange={(_, p) => {
+            setPage(p)
+            syncUrl({ page: p > 1 ? String(p) : "" })
+            document.getElementById("word-list")?.scrollIntoView()
+          }}
+          // The last page is only reached by stepping through with Next: its number would give away the list's size.
+          renderItem={(item) =>
+            item.type === "page" && item.page === pages && !item.selected ? null : <PaginationItem {...item} />
+          }
+          sx={{ mt: 2.5, "& ul": { justifyContent: "center" } }}
+        />
       )}
     </>
   )

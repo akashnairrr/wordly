@@ -115,8 +115,7 @@ export function ProgressView({ lang }: ProgressViewProps) {
         <Box sx={{ mt: 2 }}>
           <LinearProgress value={(learnedIds.length / total) * 100} aria-label="Words studied" />
           <Typography variant="body2" sx={{ ...numSx, my: 1.5 }}>
-            {learnedIds.length} of the {total} most common {language.name} words ·{" "}
-            {Object.keys(progress.skipped).length} skipped
+            {learnedIds.length} studied · {Object.keys(progress.skipped).length} skipped
           </Typography>
         </Box>
       )}
@@ -137,13 +136,11 @@ export function ProgressView({ lang }: ProgressViewProps) {
                 <li key={l.n}>
                   <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, fontSize: 15 }}>
                     <span>
-                      <b>Level {l.n}</b> · {l.name}{" "}
-                      <Box component="span" sx={{ ...numSx, color: C.muted, fontSize: 13 }}>
-                        words {l.from}–{l.to}
-                      </Box>
+                      <b>Level {l.n}</b> · {l.name}
                     </span>
-                    <Box component="span" sx={numSx}>
-                      {done}/{inLevel}
+                    {/* Studied only: level sizes would add up to the list's size. The bar shows how far along. */}
+                    <Box component="span" sx={{ ...numSx, color: C.muted }}>
+                      {done} studied
                     </Box>
                   </Box>
                   <LinearProgress
