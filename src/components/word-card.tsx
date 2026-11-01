@@ -4,7 +4,7 @@ import Box from "@mui/material/Box"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
 import { useEffect } from "react"
-import { getLanguage, POS_LABELS } from "@/lib/languages"
+import { articlePrefix, getLanguage, POS_LABELS } from "@/lib/languages"
 import { levelLabel, levelOf } from "@/lib/levels"
 import type { Word } from "@/lib/types"
 import { C, numSx } from "@/theme"
@@ -44,7 +44,8 @@ interface WordCardProps {
 export function WordCard({ word, lang, autoSpeak = false, badge }: WordCardProps) {
   const language = getLanguage(lang)
   const { available, say } = useSpeech()
-  const article = word.gender && word.gender !== "mf" ? language.articles?.[word.gender] : undefined
+  // "el ", "der ", "l'": the article as written in front of this noun.
+  const article = articlePrefix(language, word.lemma, word.gender)
 
   // Speak the word when a lesson card opens. Recordings play without waiting for voices to load.
   useEffect(() => {
@@ -105,14 +106,14 @@ export function WordCard({ word, lang, autoSpeak = false, badge }: WordCardProps
           >
             {article && (
               <Box component="span" sx={{ fontWeight: 400, color: C.muted }}>
-                {article}{" "}
+                {article}
               </Box>
             )}
             {word.lemma}
           </Typography>
           {word.ipa && <Box sx={{ mt: 0.75, color: C.muted }}>{word.ipa}</Box>}
         </Box>
-        <SpeakButton text={article ? `${article} ${word.lemma}` : word.lemma} audio={word.audio} size="lg" />
+        <SpeakButton text={`${article}${word.lemma}`} audio={word.audio} size="lg" />
       </Box>
 
       <Section title="Meaning">

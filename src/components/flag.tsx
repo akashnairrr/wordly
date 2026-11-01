@@ -1,5 +1,21 @@
 // Inline SVG flags: emoji flags render as plain letters on Windows. Add a country here when adding a language.
 const FLAGS: Record<string, React.ReactNode> = {
+  // Brazil, simplified: green field, yellow rhombus, blue globe (no stars or motto at this size).
+  BR: (
+    <>
+      <rect width="3" height="2" fill="#009C3B" />
+      <polygon points="1.5,0.2 2.8,1 1.5,1.8 0.2,1" fill="#FFDF00" />
+      <circle cx="1.5" cy="1" r="0.42" fill="#002776" />
+    </>
+  ),
+  // Italy: green–white–red, three equal vertical bands.
+  IT: (
+    <>
+      <rect width="1" height="2" fill="#009246" />
+      <rect x="1" width="1" height="2" fill="#FFFFFF" />
+      <rect x="2" width="1" height="2" fill="#CE2B37" />
+    </>
+  ),
   // Germany: black–red–gold, three equal bands.
   DE: (
     <>

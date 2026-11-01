@@ -1,4 +1,4 @@
-import type { Mood, Person, Pos, Tense } from "./types"
+import type { Mood, Person, Pos, Tense, Word } from "./types"
 
 export interface Language {
   code: string
@@ -19,8 +19,24 @@ export interface Language {
    * articles (Russian) leave this out; the gender quiz then asks for the gender by name.
    */
   articles?: { m: string; f: string; n?: string }
+  /**
+   * The article as it's written before this noun, when that depends on how the noun starts (Italian l'albero,
+   * lo zio). Without it, the article and a space.
+   */
+  articleBefore?: (lemma: string, gender: "m" | "f" | "n") => string
   /** Pronoun rows for a past tense that goes by gender rather than person (Russian он / она / оно / они). */
   pastLabels?: Record<"m" | "f" | "n" | "p", string>
+  /** Wiktionary marks stress on forms (Italian fàccio for faccio); the data pipeline strips non-final accents. */
+  formsMarkStress?: boolean
+  /**
+   * Build the present perfect from the auxiliary's present plus the past participle (Italian ho fatto, sono andati),
+   * which Wiktionary's tables leave out. Verbs with the `agreeing` auxiliary make the participle plural in the plural.
+   */
+  compoundPerfect?: {
+    auxiliaries: Record<string, Record<Person, string>>
+    agreeing: string
+    plural: (participle: string) => string
+  }
   /** Nouns are written with a capital (German), so a capital mid-sentence isn't a sign of a name (data pipeline). */
   capitalisedNouns?: boolean
   personLabels: Record<Person, string>
@@ -29,6 +45,75 @@ export interface Language {
 }
 
 export const LANGUAGES: Record<string, Language> = {
+  it: {
+    code: "it",
+    name: "Italian",
+    nativeName: "Italiano",
+    country: "IT",
+    ttsLocales: ["it-IT", "it-CH", "it"],
+    sample: "Ciao, come stai? Sto imparando l'italiano.",
+    greeting: "Ciao!",
+    droppedPronouns: ["io", "tu", "lui", "lei", "noi", "voi", "loro"],
+    articles: { m: "il", f: "la" },
+    articleBefore: (lemma, gender) => italianArticle(lemma, gender),
+    formsMarkStress: true,
+    compoundPerfect: {
+      auxiliaries: {
+        avere: { "1s": "ho", "2s": "hai", "3s": "ha", "1p": "abbiamo", "2p": "avete", "3p": "hanno" },
+        essere: { "1s": "sono", "2s": "sei", "3s": "è", "1p": "siamo", "2p": "siete", "3p": "sono" },
+      },
+      agreeing: "essere",
+      plural: (participle) => participle.replace(/o$/, "i"),
+    },
+    personLabels: { "1s": "io", "2s": "tu", "3s": "lui / lei", "1p": "noi", "2p": "voi", "3p": "loro" },
+    tenses: [
+      { mood: "indicative", tense: "present", label: "Present" },
+      // The everyday spoken past (ho fatto).
+      { mood: "indicative", tense: "perfect", label: "Past (passato prossimo)" },
+      { mood: "indicative", tense: "imperfect", label: "Imperfect" },
+      { mood: "indicative", tense: "future", label: "Future" },
+      { mood: "indicative", tense: "conditional", label: "Conditional" },
+      { mood: "subjunctive", tense: "present", label: "Present subjunctive" },
+      { mood: "subjunctive", tense: "imperfect", label: "Imperfect subjunctive" },
+      // Mostly written and southern speech (feci).
+      { mood: "indicative", tense: "preterite", label: "Simple past (passato remoto)" },
+      { mood: "imperative", tense: "affirmative", label: "Imperative" },
+      { mood: "imperative", tense: "negative", label: "Negative imperative" },
+    ],
+  },
+  pt: {
+    code: "pt",
+    name: "Portuguese",
+    nativeName: "Português",
+    // Brazilian Portuguese: the word list comes from Brazilian subtitles.
+    country: "BR",
+    ttsLocales: ["pt-BR", "pt-PT", "pt"],
+    sample: "Oi, tudo bem? Estou aprendendo português.",
+    greeting: "Oi!",
+    // Brazilian Portuguese usually says the subject (Eu acho, Você quer…).
+    droppedPronouns: [],
+    articles: { m: "o", f: "a" },
+    personLabels: {
+      "1s": "eu",
+      "2s": "tu",
+      "3s": "ele / ela / você",
+      "1p": "nós",
+      "2p": "vós",
+      "3p": "eles / elas / vocês",
+    },
+    tenses: [
+      { mood: "indicative", tense: "present", label: "Present" },
+      // The everyday past (eu fiz).
+      { mood: "indicative", tense: "preterite", label: "Past (pretérito perfeito)" },
+      { mood: "indicative", tense: "imperfect", label: "Imperfect" },
+      { mood: "indicative", tense: "future", label: "Future" },
+      { mood: "indicative", tense: "conditional", label: "Conditional" },
+      { mood: "subjunctive", tense: "present", label: "Present subjunctive" },
+      { mood: "subjunctive", tense: "imperfect", label: "Imperfect subjunctive" },
+      { mood: "imperative", tense: "affirmative", label: "Imperative" },
+      { mood: "imperative", tense: "negative", label: "Negative imperative" },
+    ],
+  },
   ru: {
     code: "ru",
     name: "Russian",
@@ -125,6 +210,20 @@ export function getLanguage(code: string): Language {
   const lang = LANGUAGES[code]
   if (!lang) throw new Error(`Unknown language: ${code}`)
   return lang
+}
+
+/** "el ", "der ", "l'" or "lo ": the article as written in front of this noun, or "" when there is none. */
+export function articlePrefix(language: Language, lemma: string, gender: Word["gender"]): string {
+  if (!gender || gender === "mf" || !language.articles?.[gender]) return ""
+  return language.articleBefore?.(lemma, gender) ?? `${language.articles[gender]} `
+}
+
+// Italian: l' before a vowel (or h), lo before s + consonant, z, gn, ps, pn, x, y (l'albero, lo zio, il libro).
+const VOWEL = /^[aeiouàèéìíòóùúh]/i
+function italianArticle(lemma: string, gender: "m" | "f" | "n"): string {
+  if (VOWEL.test(lemma)) return "l'"
+  if (gender === "f") return "la "
+  return /^(s[^aeiouàèéìòù]|z|gn|ps|pn|x|y)/i.test(lemma) ? "lo " : "il "
 }
 
 /** Languages for pickers, by English name. */

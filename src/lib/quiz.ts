@@ -1,4 +1,4 @@
-import type { Language } from "./languages"
+import { articlePrefix, type Language } from "./languages"
 import type { IndexEntry, Person, Word } from "./types"
 import { allForms, stripAccents, tokenize } from "./words"
 
@@ -239,7 +239,7 @@ const gender: Maker = (w, { lang }) => {
     options: Object.values(lang.articles),
     answer: article,
     // Article + noun together, so the gender is heard with the word (no recording exists for the pair).
-    reveal: { text: `${article} ${w.lemma}` },
+    reveal: { text: `${articlePrefix(lang, w.lemma, w.gender)}${w.lemma}` },
   }
 }
 

@@ -9,7 +9,7 @@ import type { IndexEntry, TokenGloss, Word } from "../../src/lib/types"
 import { allForms } from "../../src/lib/words"
 import { download } from "./download"
 import { glossExample, phraseCandidates, shortGloss, translatingGloss } from "./glosses"
-import { bestEntry, mapPos, toWord, usableGlosses } from "./normalize"
+import { bestEntry, mapPos, resolveIdClashes, toWord, usableGlosses } from "./normalize"
 import { OVERRIDES, SHORT_GLOSSES } from "./overrides"
 import { loadSentenceRecordings, loadWordRecordings } from "./recordings"
 import { findExamples, loadSentences, mostlyCapitalised, readTargetSentences } from "./sentences"
@@ -105,6 +105,9 @@ async function main() {
             : sameCase(form).length
               ? (gerundOf(form) ?? form)
               : (formOf.get(form)?.find((t) => lemmas.has(t)) ?? (lemmas.has(form) ? form : undefined))
+    // A skipped word stays out however it's reached (el, from another spelling that points at it).
+    const skipped = lemma && own(overrides, lemma)
+    if (skipped && "skip" in skipped) return undefined
     return lemma && lemmas.has(lemma) ? lemma : undefined
   }
   // The entry used for a lemma. Part-of-speech overrides are keyed by lemma, so they also apply when reached via a
@@ -118,6 +121,9 @@ async function main() {
     return { entry: forced ?? bestEntry(candidates), glosses: po?.glosses }
   }
 
+  const language = LANGUAGES[lang]
+  const toWordOptions = { stressMarks: language?.formsMarkStress, perfect: language?.compoundPerfect }
+
   // Walk spoken frequency order; each surface form counts towards its lemma.
   const picked: Omit<Word, "examples">[] = []
   const seen = new Set<string>()
@@ -127,7 +133,7 @@ async function main() {
     if (!lemma || seen.has(lemma)) continue
     seen.add(lemma)
     const { entry, glosses } = entryFor(lemma)
-    const w = entry && toWord(entry, picked.length + 1, glosses)
+    const w = entry && toWord(entry, picked.length + 1, glosses, toWordOptions)
     if (w) picked.push(w)
   }
 
@@ -247,7 +253,7 @@ async function main() {
   }
 
   // Word-by-word meanings for every example sentence.
-  const words: Word[] = withExamples.map((w) => {
+  const words: Word[] = resolveIdClashes(withExamples).map((w) => {
     const own = new Set(allForms(w).map((f) => f.toLowerCase()))
     return { ...w, examples: w.examples.map((e) => glossExample(e, (t) => own.has(t), lookup, phrases)) }
   })

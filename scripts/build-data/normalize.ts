@@ -40,13 +40,19 @@ const LETTER_NAME =
   /^the name of the .*letter|\bgreek letter\b|^the (archaic |old )?(cyrillic |latin |roman )(script )?letter\b|^the russian name of the .*letter/i
 
 /** All learner-relevant meanings of an entry, in Wiktionary order. */
+// Meanings that only describe a form of another word, without Wiktionary marking them as one: Italian clitic
+// compounds ("compound of di', the second-person singular imperative of dire, and mi") and bare verb forms
+// ("first-person plural present indicative of potere").
+const FORM_GLOSS =
+  /^(compound|combined form) of\b|^(first|second|third)-person (singular|plural)\b.*\b(present|past|imperfect|preterite|future|conditional|subjunctive|imperative|indicative)\b.*\bof\b/i
+
 export function usableGlosses(e: RawEntry): string[] {
   const out: string[] = []
   for (const s of e.senses ?? []) {
     if (!isLemmaSense(s) || skip(s.tags)) continue
     // Sub-senses repeat the parent gloss first; the last item is the specific meaning.
     const g = s.glosses!.at(-1)!.trim()
-    if (g && !LETTER_NAME.test(g) && !out.includes(g)) out.push(g)
+    if (g && !LETTER_NAME.test(g) && !FORM_GLOSS.test(g) && !out.includes(g)) out.push(g)
   }
   return out
 }
@@ -86,18 +92,42 @@ function gender(e: RawEntry): Word["gender"] {
 
 // Russian forms carry stress marks (до́ма) and optional parts ((по)нове́е) that real sentences don't. Only the
 // combining marks are removed: Spanish accents are precomposed letters (á) and stay.
-const clean = (form: string) => form.replace(/\([^)]*\)/g, "").replace(/[\u0300\u0301]/g, "")
+const clean = (form: string, opts: ToWordOptions = {}) => {
+  const out = form.replace(/\([^)]*\)/g, "").replace(/[\u0300\u0301]/g, "")
+  return opts.stressMarks ? unstress(out) : out
+}
+
+// Italian Wiktionary marks stress on forms (fàccio, facévo); only a word-final accent is real spelling (farò,
+// perché), so accents on a vowel followed by another letter are removed.
+const PLAIN: Record<string, string> = { à: "a", è: "e", é: "e", ì: "i", í: "i", ò: "o", ó: "o", ù: "u", ú: "u" }
+// One-syllable words keep a final accent only when it's written (è, dà, più); fà, và, stà are dictionary marks.
+const WRITTEN_ACCENT = new Set(["è", "dà", "dì", "già", "giù", "più", "può", "ciò", "sé", "né", "lì", "là", "tè", "sì"])
+const unstress = (form: string) => {
+  const out = form.replace(/[àèéìíòóùú](?=\p{L})/gu, (c) => PLAIN[c] ?? c)
+  const oneSyllable = (out.match(/[aeiouàèéìíòóùú]+/gi) ?? []).length === 1
+  return oneSyllable && !WRITTEN_ACCENT.has(out.toLowerCase()) ? out.replace(/[àèéìíòóùú]/g, (c) => PLAIN[c] ?? c) : out
+}
+
+export interface ToWordOptions {
+  /** Forms carry dictionary stress marks that aren't part of the spelling (Italian). */
+  stressMarks?: boolean
+  /**
+   * Build the present perfect from the auxiliary's present and the past participle (Italian ho fatto, sono andati),
+   * which Wiktionary's tables leave out. `plural` turns the participle plural for verbs that agree (essere).
+   */
+  perfect?: { auxiliaries: Record<string, Record<Person, string>>; agreeing: string; plural: (p: string) => string }
+}
 // "до́мы^*" and similar: footnote markers for rare variants.
 const marked = (form: string) => /[*^]/.test(form)
 
 const usable = (f: { form: string; tags?: string[] }) =>
   f.form && f.form !== "-" && !f.form.includes(" ") && !marked(f.form) && !skip(f.tags)
 
-function forms(e: RawEntry): WordForms | undefined {
+function forms(e: RawEntry, opts: ToWordOptions): WordForms | undefined {
   const out: WordForms = {}
   for (const raw of e.forms ?? []) {
     if (raw.source === "conjugation") continue
-    const f = { ...raw, form: clean(raw.form ?? "") }
+    const f = { ...raw, form: clean(raw.form ?? "", opts) }
     const t = new Set(f.tags)
     // The headword's own entry (Russian lists кни́га tagged canonical, feminine). Forms that merely look the same
     // stay: German die Übersetzung → genitive Übersetzung, Spanish tesis → plural tesis.
@@ -150,6 +180,8 @@ const SUBJUNCTIVE_TENSES: Tense[] = ["present", "imperfect", "conditional"]
 /** German Konjunktiv II has no tense tag: hätte is the "imperfect" subjunctive, würde machen the conditional. */
 function tenseOf(t: Set<string>, mood: Mood): Tense | undefined {
   if (mood === "imperative") return t.has("negative") ? "negative" : "affirmative"
+  // Italian passato remoto (feci) is tagged "historic past".
+  if (t.has("historic")) return "preterite"
   if (t.has("subjunctive-ii")) return t.has("future") ? "conditional" : "imperfect"
   return TENSES.find((x) => t.has(x))
 }
@@ -160,7 +192,7 @@ function person(t: Set<string>): Person | undefined {
   return n && p ? (`${p}${n}` as Person) : undefined
 }
 
-function conjugation(e: RawEntry): Pick<Word, "conjugation" | "nonFinite" | "past"> {
+function conjugation(e: RawEntry, opts: ToWordOptions): Pick<Word, "conjugation" | "nonFinite" | "past"> {
   const conj: Conjugation = {}
   const nonFinite: NonNullable<Word["nonFinite"]> = {}
   const past: NonNullable<Word["past"]> = {}
@@ -168,7 +200,7 @@ function conjugation(e: RawEntry): Pick<Word, "conjugation" | "nonFinite" | "pas
     // Multi-word forms are real tenses here (German habe gemacht, rufe an), unlike in noun and adjective forms.
     if (raw.source !== "conjugation" || !raw.form || raw.form === "-" || marked(raw.form) || skip(raw.tags)) continue
     if ((raw.tags ?? []).some((x) => CONJ_SKIP.has(x))) continue
-    const f = { ...raw, form: clean(raw.form) }
+    const f = { ...raw, form: clean(raw.form, opts) }
     const t = new Set(f.tags)
     // Russian past tense goes by gender and number, not person (делал, делала, делало, делали).
     if (t.has("past") && !t.has("participle") && !person(t)) {
@@ -202,6 +234,20 @@ function conjugation(e: RawEntry): Pick<Word, "conjugation" | "nonFinite" | "pas
     if (!tense || (mood === "subjunctive" && !SUBJUNCTIVE_TENSES.includes(tense))) continue
     const row = ((conj[mood] ??= {})[tense] ??= {})
     row[p] ??= f.form
+  }
+  const present = conj.indicative?.present
+  const participle = nonFinite.participle
+  // Italian writes the auxiliary with its stress mark too (avére).
+  const auxRaw = e.forms?.find((f) => f.tags?.includes("auxiliary"))?.form
+  const aux = auxRaw && clean(auxRaw, opts)
+  const auxForms = aux ? opts.perfect?.auxiliaries[aux] : undefined
+  if (opts.perfect && present && participle && auxForms) {
+    const perfect: Partial<Record<Person, string>> = {}
+    for (const p of Object.keys(present) as Person[]) {
+      const agrees = aux === opts.perfect.agreeing && p.endsWith("p")
+      perfect[p] = `${auxForms[p]} ${agrees ? opts.perfect.plural(participle) : participle}`
+    }
+    conj.indicative!.perfect = perfect
   }
   return {
     ...(Object.keys(conj).length && { conjugation: conj }),
@@ -253,8 +299,35 @@ export function wordId(lemma: string): string {
     .replace(/[^a-z0-9_]+/g, "-")
 }
 
+// Which accent a mark is, for telling apart words wordId() would merge (Portuguese avó / avô, lá / lã).
+const MARK: Record<string, string> = { "\u0300": "g", "\u0302": "c", "\u0303": "t", "\u0308": "d", "\u0327": "s" }
+
+/**
+ * Makes IDs unique without touching the ones that already are (progress is keyed by them). Within a clash, a word
+ * whose only accents are acute keeps the plain ID; the others spell their marks out (avô → avo_c, lã → la_t, à → a_g).
+ * The rule doesn't depend on word order, so IDs stay stable across rebuilds.
+ */
+export function resolveIdClashes<T extends { id: string; lemma: string }>(words: T[]): T[] {
+  const count = new Map<string, number>()
+  for (const w of words) count.set(w.id, (count.get(w.id) ?? 0) + 1)
+  return words.map((w) => {
+    const marks = [...w.lemma.toLowerCase().normalize("NFD")].filter((c) => /[\u0300-\u036f]/.test(c))
+    if (count.get(w.id)! < 2 || marks.every((c) => c === "\u0301")) return w
+    const id = [...w.lemma.toLowerCase().replaceAll("ß", "ss").normalize("NFD")]
+      .map((c) => (/[\u0300-\u036f]/.test(c) ? `_${MARK[c] ?? (c === "\u0301" ? "" : "x")}` : c))
+      .join("")
+      .replace(/[^a-z0-9_]+/g, "-")
+    return { ...w, id }
+  })
+}
+
 /** Converts a kaikki lemma entry into a Word, or undefined when it has nothing teachable. */
-export function toWord(e: RawEntry, rank: number, glossOverride?: string[]): Omit<Word, "examples"> | undefined {
+export function toWord(
+  e: RawEntry,
+  rank: number,
+  glossOverride?: string[],
+  opts: ToWordOptions = {}
+): Omit<Word, "examples"> | undefined {
   const pos = mapPos(e.pos)
   const [first, ...rest] = glossOverride ?? glosses(e)
   // Single letters as nouns are letter names ("S", from geht's), never vocabulary.
@@ -269,9 +342,9 @@ export function toWord(e: RawEntry, rank: number, glossOverride?: string[]): Omi
     if (gen) w.gender = gen
   }
   if (pos === "noun" || pos === "adj" || pos === "det" || pos === "pron") {
-    const f = forms(e)
+    const f = forms(e, opts)
     if (f) w.forms = f
   }
-  if (pos === "verb") Object.assign(w, conjugation(e), aspect(e))
+  if (pos === "verb") Object.assign(w, conjugation(e, opts), aspect(e))
   return w
 }
