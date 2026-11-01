@@ -8,7 +8,7 @@ const key = (lang: string) => `wordly:v1:${lang}`
 export function emptyProgress(): Progress {
   return {
     version: 1,
-    settings: { sessionSize: MIN_SIZE, rate: RATES.normal },
+    settings: { sessionSize: MIN_SIZE, pageSize: 100, rate: RATES.normal },
     learned: {},
     skipped: {},
     history: [],

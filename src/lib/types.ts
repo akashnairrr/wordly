@@ -72,6 +72,8 @@ export interface IndexEntry {
 
 export interface Settings {
   sessionSize: number
+  /** Words per page on the word list. */
+  pageSize: number
   voiceURI?: string
   rate: number
 }
