@@ -19,6 +19,12 @@ export const MAX_EXAMPLES = 5
 export const SENTENCE_AUDIO = "https://downloads.tatoeba.org/exports/sentences_with_audio.tar.bz2"
 
 export const SOURCES: Record<string, Sources> = {
+  ru: {
+    frequency: "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/ru/ru_50k.txt",
+    wiktionary: "https://kaikki.org/dictionary/Russian/kaikki.org-dictionary-Russian.jsonl.gz",
+    sentences: { url: "https://www.manythings.org/anki/rus-eng.zip", file: "rus.txt" },
+    lingualibre: "LL-Q7737_(rus)-",
+  },
   de: {
     frequency: "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/de/de_50k.txt",
     wiktionary: "https://kaikki.org/dictionary/German/kaikki.org-dictionary-German.jsonl.gz",

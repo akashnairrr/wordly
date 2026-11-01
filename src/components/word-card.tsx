@@ -44,7 +44,7 @@ interface WordCardProps {
 export function WordCard({ word, lang, autoSpeak = false, badge }: WordCardProps) {
   const language = getLanguage(lang)
   const { available, say } = useSpeech()
-  const article = word.gender && word.gender !== "mf" ? language.articles[word.gender] : undefined
+  const article = word.gender && word.gender !== "mf" ? language.articles?.[word.gender] : undefined
 
   // Speak the word when a lesson card opens. Recordings play without waiting for voices to load.
   useEffect(() => {
@@ -78,6 +78,21 @@ export function WordCard({ word, lang, autoSpeak = false, badge }: WordCardProps
             {badge && <ToneChip tone="studied" label={badge} />}
             <span>{POS_LABELS[word.pos]}</span>
             {word.gender && <span>· {GENDER_LABEL[word.gender]}</span>}
+            {word.aspect && (
+              <span>
+                · {word.aspect}
+                {word.aspectPartner && (
+                  <>
+                    {" "}
+                    (pair:{" "}
+                    <Box component="span" lang={lang} sx={{ fontWeight: 600 }}>
+                      {word.aspectPartner}
+                    </Box>
+                    )
+                  </>
+                )}
+              </span>
+            )}
             <span>· {levelLabel(levelOf(word.rank))}</span>
             <Box component="span" sx={numSx}>
               · #{word.rank}

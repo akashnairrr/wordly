@@ -34,6 +34,7 @@ export interface Example {
 export interface WordForms {
   masculine?: string
   feminine?: string
+  neuter?: string
   plural?: string
   masculinePlural?: string
   femininePlural?: string
@@ -58,6 +59,11 @@ export interface Word {
   forms?: WordForms
   conjugation?: Conjugation
   nonFinite?: { gerund?: string; participle?: string }
+  /** Past tense by gender and number rather than person (Russian делал, делала, делало, делали). */
+  past?: Partial<Record<"m" | "f" | "n" | "p", string>>
+  /** Russian verbs come in pairs: делать (imperfective) ↔ сделать (perfective). */
+  aspect?: "imperfective" | "perfective"
+  aspectPartner?: string
   examples: Example[]
 }
 

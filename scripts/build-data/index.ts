@@ -139,11 +139,15 @@ async function main() {
   const pickedLemmas = new Set(picked.map((w) => key(w.lemma)))
   const curated = SHORT_GLOSSES[lang] ?? {}
   // Like resolve(), but a spelling that's also a form of a top word means that word (dije → decir, not "locket").
+  // Inflected forms listed in the chosen words' own tables (хочу → хотеть). Russian Wiktionary rarely has a separate
+  // "form of" entry for them, so this is the fallback when nothing else resolves a sentence word.
+  const pickedForm = new Map<string, string>()
+  for (const w of picked) for (const f of allForms(w)) if (!pickedForm.has(key(f))) pickedForm.set(key(f), key(w.lemma))
   const glossLemma = (token: string) => {
     const o = own(overrides, token)
     if (o && "lemma" in o) return key(o.lemma)
     if (lemmas.has(token) && pickedLemmas.has(token)) return token
-    return formOf.get(token)?.find((t) => pickedLemmas.has(t)) ?? resolve(token)
+    return formOf.get(token)?.find((t) => pickedLemmas.has(t)) ?? resolve(token) ?? pickedForm.get(token)
   }
   const glossCache = new Map<string, TokenGloss | undefined>()
   const lookup = (token: string) => {

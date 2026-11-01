@@ -5,10 +5,13 @@ import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import { useState } from "react"
 import { getLanguage } from "@/lib/languages"
-import type { Person, Word } from "@/lib/types"
+import type { Mood, Person, Tense, Word } from "@/lib/types"
 import { FormRows } from "./forms-table"
 
 const PERSONS: Person[] = ["1s", "2s", "3s", "1p", "2p", "3p"]
+const PAST_KEYS = ["m", "f", "n", "p"] as const
+
+type Tab = { label: string; mood?: Mood; tense?: Tense; past?: true }
 
 interface ConjugationTableProps {
   word: Word
@@ -20,9 +23,13 @@ export function ConjugationTable({ word, lang }: ConjugationTableProps) {
   const tenses = language.tenses.filter(
     ({ mood, tense }) => Object.keys(word.conjugation?.[mood]?.[tense] ?? {}).length
   )
+  const tabs: Tab[] = [...tenses]
+  // A past tense by gender (Russian) goes right after the first tense: Present, Past, Future…
+  if (word.past && language.pastLabels) tabs.splice(Math.min(1, tabs.length), 0, { label: "Past", past: true })
   const [active, setActive] = useState(0)
-  const current = tenses[active]
-  const row = current ? word.conjugation?.[current.mood]?.[current.tense] : undefined
+  const current = tabs[active]
+  const row = current?.mood && current.tense ? word.conjugation?.[current.mood]?.[current.tense] : undefined
+  const pastLabels = language.pastLabels
 
   const nonFinite = [
     ["Gerund (-ing)", word.nonFinite?.gerund],
@@ -31,7 +38,7 @@ export function ConjugationTable({ word, lang }: ConjugationTableProps) {
 
   return (
     <div>
-      {tenses.length > 0 && (
+      {tabs.length > 0 && (
         <ToggleButtonGroup
           exclusive
           value={active}
@@ -39,7 +46,7 @@ export function ConjugationTable({ word, lang }: ConjugationTableProps) {
           aria-label="Tense"
           sx={{ mb: 0.75 }}
         >
-          {tenses.map((t, i) => (
+          {tabs.map((t, i) => (
             <ToggleButton key={t.label} value={i}>
               {t.label}
             </ToggleButton>
@@ -57,6 +64,21 @@ export function ConjugationTable({ word, lang }: ConjugationTableProps) {
             const spoken =
               recording || current?.mood === "imperative" ? form : `${language.personLabels[p].split(" / ")[0]} ${form}`
             return { label: language.personLabels[p], form, spoken, audio: recording }
+          })}
+        />
+      )}
+      {current?.past && word.past && pastLabels && (
+        <FormRows
+          lang={lang}
+          rows={PAST_KEYS.filter((k) => word.past?.[k]).map((k) => {
+            const form = word.past![k]!
+            const recording = word.formAudio?.[form]
+            return {
+              label: pastLabels[k],
+              form,
+              spoken: recording ? form : `${pastLabels[k].split(" / ")[0]} ${form}`,
+              audio: recording,
+            }
           })}
         />
       )}

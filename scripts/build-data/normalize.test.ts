@@ -208,3 +208,105 @@ describe("normalize: German", () => {
     assert.equal(wordId("groß"), "gross")
   })
 })
+
+describe("normalize: Russian", () => {
+  const conj = (form: string, ...tags: string[]) => ({ form, tags, source: "conjugation" })
+
+  it("noun: gender after the transliteration, stress marks stripped, nominative plural and genitive", () => {
+    const w = toWord(
+      {
+        word: "дом",
+        pos: "noun",
+        head_templates: [{ expansion: "дом • (dom) m inan (genitive до́ма, nominative plural дома́)" }],
+        senses: [{ glosses: ["house"] }],
+        forms: [
+          { form: "dom", tags: ["romanization"] },
+          { form: "до́ма", tags: ["genitive"] },
+          { form: "дома́", tags: ["nominative", "plural"] },
+          { form: "до́мы^*", tags: ["nominative", "plural"] },
+          { form: "до́мик", tags: ["diminutive"] },
+        ],
+      },
+      1
+    )!
+    assert.equal(w.gender, "m")
+    assert.deepEqual(w.forms, { genitive: "дома", plural: "дома" })
+    assert.equal(w.id, "dom")
+  })
+
+  it("noun: gender read past a stressed heading; the headword isn't listed as its own form", () => {
+    const w = toWord(
+      {
+        word: "книга",
+        pos: "noun",
+        head_templates: [{ expansion: "кни́га • (kníga) f inan (genitive кни́ги, nominative plural кни́ги)" }],
+        senses: [{ glosses: ["book"] }],
+        forms: [
+          { form: "кни́га", tags: ["canonical", "feminine"] },
+          { form: "кни́ги", tags: ["genitive"] },
+          { form: "кни́ги", tags: ["nominative", "plural"] },
+        ],
+      },
+      1
+    )!
+    assert.equal(w.gender, "f")
+    assert.deepEqual(w.forms, { genitive: "книги", plural: "книги" })
+  })
+
+  it("verb: present, compound future, imperative and the past by gender; aspect partner", () => {
+    const w = toWord(
+      {
+        word: "делать",
+        pos: "verb",
+        senses: [{ glosses: ["to make, to do"] }],
+        forms: [
+          { form: "де́лать", tags: ["canonical", "imperfective"] },
+          { form: "сде́лать", tags: ["perfective"] },
+          conj("де́лаю", "first-person", "present", "singular"),
+          conj("бу́ду де́лать", "first-person", "future", "singular"),
+          conj("де́лай", "imperative", "second-person", "singular"),
+          conj("де́лал", "masculine", "past", "singular"),
+          conj("де́лала", "feminine", "past", "singular"),
+          conj("де́лало", "neuter", "past", "singular"),
+          conj("де́лали", "masculine", "past", "plural"),
+          conj("де́лавший", "active", "participle", "past"),
+        ],
+      },
+      1
+    )!
+    assert.deepEqual(w.conjugation, {
+      indicative: { present: { "1s": "делаю" }, future: { "1s": "буду делать" } },
+      imperative: { affirmative: { "2s": "делай" } },
+    })
+    assert.deepEqual(w.past, { m: "делал", f: "делала", n: "делало", p: "делали" })
+    assert.equal(w.aspect, "imperfective")
+    assert.equal(w.aspectPartner, "сделать")
+  })
+
+  it("adjective: nominative gender forms from the declension table, comparative without its optional prefix", () => {
+    const w = toWord(
+      {
+        word: "новый",
+        pos: "adj",
+        senses: [{ glosses: ["new"] }],
+        forms: [
+          { form: "(по)но́вее", tags: ["comparative"] },
+          { form: "(наи)нове́йший", tags: ["superlative"] },
+          { form: "но́вый", tags: ["masculine", "nominative"], source: "declension" },
+          { form: "но́вое", tags: ["neuter", "nominative"], source: "declension" },
+          { form: "но́вая", tags: ["feminine", "nominative"], source: "declension" },
+          { form: "но́вые", tags: ["nominative", "plural"], source: "declension" },
+          { form: "но́вой", tags: ["feminine", "genitive"], source: "declension" },
+        ],
+      },
+      1
+    )!
+    assert.deepEqual(w.forms, { comparative: "новее", neuter: "новое", feminine: "новая", plural: "новые" })
+  })
+
+  it("wordId transliterates Cyrillic and keeps soft-sign words distinct", () => {
+    assert.equal(wordId("хорошо"), "khorosho")
+    assert.notEqual(wordId("брат"), wordId("брать"))
+    assert.equal(wordId("ещё"), "eshchyo")
+  })
+})
