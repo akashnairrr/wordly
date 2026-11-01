@@ -6,6 +6,7 @@ describe("languages", () => {
   it("picker lists languages by English name", () => {
     const names = LANGUAGE_LIST.map((l) => l.name)
     assert.deepEqual(names, [...names].sort())
+    assert.ok(!names.includes("Portuguese"), "hidden languages stay out of the picker")
   })
 
   it("articles as written before the noun: Italian elides and switches to lo; others add a space", () => {

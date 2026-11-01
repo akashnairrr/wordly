@@ -2,13 +2,13 @@ import Box from "@mui/material/Box"
 import type { Metadata } from "next"
 import { Header } from "@/components/header"
 import { SpeechProvider } from "@/components/speech-provider"
-import { getLanguage, LANGUAGES } from "@/lib/languages"
+import { getLanguage, LANGUAGE_LIST } from "@/lib/languages"
 import { columnSx } from "@/theme"
 
 export const dynamicParams = false
 
 export function generateStaticParams() {
-  return Object.keys(LANGUAGES).map((lang) => ({ lang }))
+  return LANGUAGE_LIST.map((l) => ({ lang: l.code }))
 }
 
 export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Promise<Metadata> {
