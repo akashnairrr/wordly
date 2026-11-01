@@ -21,8 +21,9 @@ export interface RawEntry {
 }
 
 // "pre-reform spelling (used until 1943 in Brazil and 1990 in Portugal) of ação", "Brazilian Portuguese standard
-// spelling of demónio": a form of the spelling taught.
-const OLD_SPELLING = /^(?:pre-reform|Brazilian Portuguese standard) (?:spelling|form)\b.*?\bof (\S+?)[;,]?(?: |$)/
+// spelling of demónio", French "post-1990 spelling of connaître": a form of the spelling taught.
+const OLD_SPELLING =
+  /^(?:pre-reform|post-1990|Brazilian Portuguese standard|archaic, formal) (?:spelling|form)\b.*?\bof (\S+?)[;,]?(?: |$)/
 // "European Portuguese standard form of caminhão": a current word whose meanings Wiktionary keeps on the other entry.
 const SEE_OTHER = /^European Portuguese standard (?:spelling|form) of (\S+?)[;,]?(?: |$)/
 

@@ -9,6 +9,14 @@ const FLAGS: Record<string, React.ReactNode> = {
       <rect x="1.02" y="0.78" width="0.36" height="0.42" rx="0.08" fill="#DA291C" stroke="#FFFFFF" strokeWidth="0.06" />
     </>
   ),
+  // France: blue–white–red, three equal vertical bands.
+  FR: (
+    <>
+      <rect width="1" height="2" fill="#002395" />
+      <rect x="1" width="1" height="2" fill="#FFFFFF" />
+      <rect x="2" width="1" height="2" fill="#ED2939" />
+    </>
+  ),
   // Italy: green–white–red, three equal vertical bands.
   IT: (
     <>

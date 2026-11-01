@@ -24,6 +24,8 @@ export interface Language {
    * lo zio). Without it, the article and a space.
    */
   articleBefore?: (lemma: string, gender: "m" | "f" | "n") => string
+  /** The subject pronoun as said before this form, when that depends on how the form starts (French j'aime). */
+  pronounBefore?: (pronoun: string, form: string) => string
   /** Pronoun rows for a past tense that goes by gender rather than person (Russian он / она / оно / они). */
   pastLabels?: Record<"m" | "f" | "n" | "p", string>
   /** Wiktionary marks stress on forms (Italian fàccio for faccio); the data pipeline strips non-final accents. */
@@ -50,6 +52,61 @@ export interface Language {
 }
 
 export const LANGUAGES: Record<string, Language> = {
+  fr: {
+    code: "fr",
+    name: "French",
+    nativeName: "Français",
+    country: "FR",
+    // France voices only: Canadian ones would otherwise win on quality.
+    ttsLocales: ["fr-FR"],
+    sample: "Bonjour, ça va ? J'apprends le français.",
+    greeting: "Bonjour !",
+    droppedPronouns: [],
+    articles: { m: "le", f: "la" },
+    articleBefore: (lemma, gender) => (startsWithVowel(lemma) ? "l'" : `${gender === "f" ? "la" : "le"} `),
+    pronounBefore: (pronoun, form) => (pronoun === "je" && startsWithVowel(form) ? `j'${form}` : `${pronoun} ${form}`),
+    compoundPerfect: {
+      auxiliaries: {
+        avoir: { "1s": "ai", "2s": "as", "3s": "a", "1p": "avons", "2p": "avez", "3p": "ont" },
+        être: { "1s": "suis", "2s": "es", "3s": "est", "1p": "sommes", "2p": "êtes", "3p": "sont" },
+      },
+      agreeing: "être",
+      // ponytail: masculine plural only (allés); ignores participles already ending in s (pris).
+      plural: (participle) => (participle.endsWith("s") ? participle : `${participle}s`),
+    },
+    region: {
+      keep: "France",
+      drop: [
+        "Quebec",
+        "Canada",
+        "Canadian",
+        "North-America",
+        "Louisiana",
+        "Acadia",
+        "Belgium",
+        "Switzerland",
+        "Luxembourg",
+        "Africa",
+        "Morocco",
+        "Rwanda",
+        "Vietnam",
+        "Antilles",
+      ],
+    },
+    personLabels: { "1s": "je", "2s": "tu", "3s": "il / elle", "1p": "nous", "2p": "vous", "3p": "ils / elles" },
+    tenses: [
+      { mood: "indicative", tense: "present", label: "Present" },
+      // The everyday spoken past (j'ai fait).
+      { mood: "indicative", tense: "perfect", label: "Past (passé composé)" },
+      { mood: "indicative", tense: "imperfect", label: "Imperfect" },
+      { mood: "indicative", tense: "future", label: "Future" },
+      { mood: "indicative", tense: "conditional", label: "Conditional" },
+      { mood: "subjunctive", tense: "present", label: "Present subjunctive" },
+      // Literary past (je fis), common in books.
+      { mood: "indicative", tense: "preterite", label: "Simple past (passé simple)" },
+      { mood: "imperative", tense: "affirmative", label: "Imperative" },
+    ],
+  },
   it: {
     code: "it",
     name: "Italian",
@@ -223,6 +280,11 @@ export function getLanguage(code: string): Language {
 }
 
 /** "el ", "der ", "l'" or "lo ": the article as written in front of this noun, or "" when there is none. */
+/** "je fais", "j'aime": the pronoun and form as spoken together. */
+export function withPronoun(language: Language, pronoun: string, form: string): string {
+  return language.pronounBefore?.(pronoun, form) ?? `${pronoun} ${form}`
+}
+
 export function articlePrefix(language: Language, lemma: string, gender: Word["gender"]): string {
   if (!gender || gender === "mf" || !language.articles?.[gender]) return ""
   return language.articleBefore?.(lemma, gender) ?? `${language.articles[gender]} `
@@ -230,6 +292,9 @@ export function articlePrefix(language: Language, lemma: string, gender: Word["g
 
 // Italian: l' before a vowel (or h), lo before s + consonant, z, gn, ps, pn, x, y (l'albero, lo zio, il libro).
 const VOWEL = /^[aeiouàèéìíòóùúh]/i
+// ponytail: treats every h as silent (l'homme); h aspiré words (le héros, la haine) get l' too.
+const startsWithVowel = (word: string) => /^[aeiouyàâäéèêëîïôöùûüœæh]/i.test(word)
+
 function italianArticle(lemma: string, gender: "m" | "f" | "n"): string {
   if (VOWEL.test(lemma)) return "l'"
   if (gender === "f") return "la "
