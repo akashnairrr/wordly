@@ -46,6 +46,21 @@ describe("buildQuiz / grade", () => {
     }
   })
 
+  it("Russian has no articles: the gender question asks for the gender by name", () => {
+    const okno: Word = { ...casa, id: "okno", lemma: "окно", gender: "n", forms: { plural: "окна" } }
+    for (let seed = 1; seed < 20; seed++) {
+      const q = buildQuiz([okno], pool, getLanguage("ru"), { speech: false, rng: seeded(seed) }).find(
+        (q) => q.kind === "gender"
+      )
+      if (!q) continue
+      assert.deepEqual(q.options, ["masculine", "feminine", "neuter"])
+      assert.equal(q.answer, "neuter")
+      assert.equal(q.reveal.text, "окно")
+      return
+    }
+    assert.fail("no gender question for a Russian noun")
+  })
+
   it("German nouns get a three-way der / die / das question, neuter included", () => {
     const haus: Word = { ...casa, id: "haus", lemma: "Haus", gender: "n", forms: { plural: "Häuser" } }
     for (let seed = 1; seed < 20; seed++) {

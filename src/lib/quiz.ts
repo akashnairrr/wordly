@@ -211,15 +211,30 @@ const conjugation: Maker = (w, { lang, rng }) => {
   }
 }
 
+const GENDER_NAMES = { m: "masculine", f: "feminine", n: "neuter" } as const
+
 const gender: Maker = (w, { lang }) => {
   if (!w.gender || w.gender === "mf") return
+  const hint = shortGloss(w.glosses[0])
+  // No articles (Russian): ask for the gender by name.
+  if (!lang.articles) {
+    return {
+      kind: "gender",
+      wordId: w.id,
+      prompt: w.lemma,
+      hint,
+      options: Object.values(GENDER_NAMES),
+      answer: GENDER_NAMES[w.gender],
+      reveal: { text: w.lemma },
+    }
+  }
   const article = lang.articles[w.gender]
   if (!article) return
   return {
     kind: "gender",
     wordId: w.id,
     prompt: w.lemma,
-    hint: shortGloss(w.glosses[0]),
+    hint,
     // el / la, or der / die / das.
     options: Object.values(lang.articles),
     answer: article,

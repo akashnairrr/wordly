@@ -8,6 +8,14 @@ const FLAGS: Record<string, React.ReactNode> = {
       <rect y="1.3333" width="3" height="0.6667" fill="#FFCE00" />
     </>
   ),
+  // Russia: white–blue–red, three equal bands.
+  RU: (
+    <>
+      <rect width="3" height="2" fill="#FFFFFF" />
+      <rect y="0.6667" width="3" height="0.6667" fill="#0039A6" />
+      <rect y="1.3333" width="3" height="0.6667" fill="#D52B1E" />
+    </>
+  ),
   // Spain, civil flag (red–yellow–red, 1:2:1), without the coat of arms so it stays crisp at small sizes.
   ES: (
     <>

@@ -10,6 +10,7 @@ import { SpeakButton } from "./speak-button"
 const LABELS: [keyof WordForms, string][] = [
   ["masculine", "Masculine"],
   ["feminine", "Feminine"],
+  ["neuter", "Neuter"],
   ["plural", "Plural"],
   ["masculinePlural", "Masculine plural"],
   ["femininePlural", "Feminine plural"],

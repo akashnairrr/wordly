@@ -14,8 +14,13 @@ export interface Language {
   greeting: string
   /** Subject pronouns native speakers usually leave out; sentences spelling them out sound stiff (data pipeline). */
   droppedPronouns: string[]
-  /** Definite articles by gender, used for noun display and gender quizzes (German adds neuter). */
-  articles: { m: string; f: string; n?: string }
+  /**
+   * Definite articles by gender, used for noun display and gender quizzes (German adds neuter). Languages without
+   * articles (Russian) leave this out; the gender quiz then asks for the gender by name.
+   */
+  articles?: { m: string; f: string; n?: string }
+  /** Pronoun rows for a past tense that goes by gender rather than person (Russian он / она / оно / они). */
+  pastLabels?: Record<"m" | "f" | "n" | "p", string>
   /** Nouns are written with a capital (German), so a capital mid-sentence isn't a sign of a name (data pipeline). */
   capitalisedNouns?: boolean
   personLabels: Record<Person, string>
@@ -24,6 +29,34 @@ export interface Language {
 }
 
 export const LANGUAGES: Record<string, Language> = {
+  ru: {
+    code: "ru",
+    name: "Russian",
+    nativeName: "Русский",
+    country: "RU",
+    ttsLocales: ["ru-RU", "ru"],
+    sample: "Привет, как дела? Я учу русский.",
+    greeting: "Привет!",
+    // Russian usually keeps the subject pronoun (Я хочу есть), unlike Spanish.
+    droppedPronouns: [],
+    // No articles: the gender quiz asks masculine / feminine / neuter.
+    pastLabels: { m: "он", f: "она", n: "оно", p: "они" },
+    personLabels: {
+      "1s": "я",
+      "2s": "ты",
+      "3s": "он / она / оно",
+      "1p": "мы",
+      "2p": "вы",
+      "3p": "они",
+    },
+    // Imperfective verbs have a present and a compound future (буду делать); perfective verbs only a future
+    // (сделаю). The past, by gender, is added by the conjugation table.
+    tenses: [
+      { mood: "indicative", tense: "present", label: "Present" },
+      { mood: "indicative", tense: "future", label: "Future" },
+      { mood: "imperative", tense: "affirmative", label: "Imperative" },
+    ],
+  },
   de: {
     code: "de",
     name: "German",
