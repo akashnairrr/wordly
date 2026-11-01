@@ -4,7 +4,7 @@ import Box from "@mui/material/Box"
 import ToggleButton from "@mui/material/ToggleButton"
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import { useState } from "react"
-import { getLanguage } from "@/lib/languages"
+import { getLanguage, withPronoun } from "@/lib/languages"
 import type { Mood, Person, Tense, Word } from "@/lib/types"
 import { FormRows } from "./forms-table"
 
@@ -62,7 +62,9 @@ export function ConjugationTable({ word, lang }: ConjugationTableProps) {
             // A recording is of the bare form; synthetic speech says it with its pronoun for context.
             // Imperatives are commands, so no pronoun.
             const spoken =
-              recording || current?.mood === "imperative" ? form : `${language.personLabels[p].split(" / ")[0]} ${form}`
+              recording || current?.mood === "imperative"
+                ? form
+                : withPronoun(language, language.personLabels[p].split(" / ")[0]!, form)
             return { label: language.personLabels[p], form, spoken, audio: recording }
           })}
         />

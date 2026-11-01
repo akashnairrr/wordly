@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
+import { getLanguage } from "../../src/lib/languages"
 import { allForms } from "../../src/lib/words"
 import { bestEntry, resolveIdClashes, toWord, wordId } from "./normalize"
 import type { RawEntry } from "./wiktionary"
@@ -391,5 +392,43 @@ describe("resolveIdClashes", () => {
     const ids = resolveIdClashes([w("avô"), w("avó"), w("lá"), w("lã"), w("à"), w("á"), w("año")]).map((x) => x.id)
     assert.deepEqual(ids, ["avo_c", "avo_", "la_", "la_t", "a_g", "a_", "an_o"])
     assert.equal(new Set(ids).size, ids.length)
+  })
+})
+
+describe("normalize: French", () => {
+  const conj = (form: string, ...tags: string[]) => ({ form, tags, source: "conjugation" })
+  const perfect = getLanguage("fr").compoundPerfect!
+
+  it("reads the auxiliary from the described passé composé; être verbs agree in the plural", () => {
+    const aller = toWord(
+      {
+        word: "aller",
+        pos: "verb",
+        senses: [{ glosses: ["to go"] }],
+        forms: [
+          conj("allé", "participle", "past"),
+          conj("vais", "first-person", "indicative", "present", "singular"),
+          conj("allons", "first-person", "indicative", "plural", "present"),
+          conj(
+            "present indicative of être + past participle",
+            "indicative",
+            "multiword-construction",
+            "perfect",
+            "present"
+          ),
+        ],
+      },
+      1,
+      undefined,
+      { perfect }
+    )!
+    assert.deepEqual(aller.conjugation?.indicative?.perfect, { "1s": "suis allé", "1p": "sommes allés" })
+  })
+
+  it("elided forms and inversions aren't words of their own", () => {
+    const e = (word: string, pos: string, gloss: string): RawEntry => ({ word, pos, senses: [{ glosses: [gloss] }] })
+    assert.equal(toWord(e("n'", "particle", "prevocalic form of ne"), 1), undefined)
+    assert.equal(toWord(e("s'", "pron", "Elision of se before a word beginning with a vowel"), 1), undefined)
+    assert.equal(toWord(e("puis-je", "verb", "an interrogative form of je peux"), 1), undefined)
   })
 })

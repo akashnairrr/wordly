@@ -42,9 +42,18 @@ const LETTER_NAME =
 /** All learner-relevant meanings of an entry, in Wiktionary order. */
 // Meanings that only describe a form of another word, without Wiktionary marking them as one: Italian clitic
 // compounds ("compound of di', the second-person singular imperative of dire, and mi") and bare verb forms
-// ("first-person plural present indicative of potere").
-const FORM_GLOSS =
-  /^(compound|combined form) of\b|^(first|second|third)-person (singular|plural)\b.*\b(present|past|imperfect|preterite|future|conditional|subjunctive|imperative|indicative)\b.*\bof\b/i
+// ("first-person plural present indicative of potere"), French elisions (n', "prevocalic form of ne") and inversions
+// (puis-je, "an interrogative form of je peux").
+const FORM_GLOSS = new RegExp(
+  [
+    /^(compound|combined form) of\b/,
+    /^(elided|prevocalic) form of\b|^elision of\b|\binterrogative form of\b/,
+    /^(first|second|third)-person (singular|plural)\b.*\b(present|past|imperfect|preterite|future|conditional|subjunctive|imperative|indicative)\b.*\bof\b/,
+  ]
+    .map((r) => r.source)
+    .join("|"),
+  "i"
+)
 
 export function usableGlosses(e: RawEntry): string[] {
   const out: string[] = []
@@ -238,7 +247,12 @@ function conjugation(e: RawEntry, opts: ToWordOptions): Pick<Word, "conjugation"
   const present = conj.indicative?.present
   const participle = nonFinite.participle
   // Italian writes the auxiliary with its stress mark too (avére).
-  const auxRaw = e.forms?.find((f) => f.tags?.includes("auxiliary"))?.form
+  // Italian lists the auxiliary as a form; French describes it ("present indicative of être + past participle").
+  const auxRaw =
+    e.forms?.find((f) => f.tags?.includes("auxiliary"))?.form ??
+    e.forms
+      ?.find((f) => f.tags?.includes("perfect") && f.tags.includes("present"))
+      ?.form.match(/^present indicative of (\S+)/)?.[1]
   const aux = auxRaw && clean(auxRaw, opts)
   const auxForms = aux ? opts.perfect?.auxiliaries[aux] : undefined
   if (opts.perfect && present && participle && auxForms) {

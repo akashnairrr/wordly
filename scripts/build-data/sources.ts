@@ -25,6 +25,12 @@ export const SOURCES: Record<string, Sources> = {
     sentences: { url: "https://www.manythings.org/anki/ita-eng.zip", file: "ita.txt" },
     lingualibre: "LL-Q652_(ita)-",
   },
+  fr: {
+    frequency: "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/fr/fr_50k.txt",
+    wiktionary: "https://kaikki.org/dictionary/French/kaikki.org-dictionary-French.jsonl.gz",
+    sentences: { url: "https://www.manythings.org/anki/fra-eng.zip", file: "fra.txt" },
+    lingualibre: "LL-Q150_(fra)-",
+  },
   // European Portuguese subtitles.
   pt: {
     frequency: "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/pt/pt_50k.txt",
