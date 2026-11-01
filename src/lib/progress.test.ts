@@ -22,4 +22,10 @@ describe("progress", () => {
     assert.equal(p.streak, 2, "second session same day doesn't double count")
     assert.equal(p.history.length, 3)
   })
+
+  it("recordSession adds up XP", () => {
+    let p = recordSession(emptyProgress(), [], "lesson", undefined, 30)
+    p = recordSession(p, [], "review", undefined, 15)
+    assert.equal(p.xp, 45)
+  })
 })

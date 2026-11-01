@@ -28,6 +28,11 @@ export const LIGHT = {
   greenSoft: "#dce9d3",
   purple: "#5b3e8f",
   purpleSoft: "#e5ddf2",
+  // Word strength meter, 1–4 bars: red, orange, yellow, green. Fills only, never text.
+  strength1: "#c0392b",
+  strength2: "#e07b1f",
+  strength3: "#d9a90b",
+  strength4: "#3f8f3a",
   backdrop: "rgb(22 88 123 / 0.35)",
   flagRing: "rgb(22 88 123 / 0.15)",
 }
@@ -56,6 +61,10 @@ export const DARK: typeof LIGHT = {
   greenSoft: "#25391d",
   purple: "#cdb9ef",
   purpleSoft: "#33284a",
+  strength1: "#f2957c",
+  strength2: "#f3b06a",
+  strength3: "#ecd36a",
+  strength4: "#9fd38a",
   backdrop: "rgb(0 0 0 / 0.55)",
   flagRing: "rgb(255 255 255 / 0.15)",
 }

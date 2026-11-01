@@ -11,16 +11,21 @@ import Typography from "@mui/material/Typography"
 import NextLink from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
+import { Confetti } from "@/components/confetti"
 import { EmptyState } from "@/components/empty-state"
 import { ButtonLink } from "@/components/links"
-import { Quiz, type QuizResult } from "@/components/quiz"
+import { MatchRound, matchPairs } from "@/components/match-round"
+import { Quiz } from "@/components/quiz"
 import { useSpeech } from "@/components/speech-provider"
+import { StatLine } from "@/components/stat-line"
 import { ToneChip } from "@/components/tone-chip"
 import { WordCard } from "@/components/word-card"
 import { fetchWord } from "@/lib/data"
 import { getLanguage } from "@/lib/languages"
+import { currentLevel, type Level, levelLabel, levelProgress } from "@/lib/levels"
 import { recordSession, skipWord } from "@/lib/progress"
-import { buildQuiz, type QuizQuestion } from "@/lib/quiz"
+import { buildQuiz, type QuizQuestion, type QuizResult, type QuizSummary, summarize } from "@/lib/quiz"
+import { playSfx } from "@/lib/sfx"
 import { pickNewWords, planLesson, reviewQueue } from "@/lib/session"
 import type { Word } from "@/lib/types"
 import { wordHref } from "@/lib/words"
@@ -59,10 +64,55 @@ function Top({ title, sub, right }: TopProps) {
   )
 }
 
+interface Outcome {
+  summary: QuizSummary
+  streak: number
+  streakUp: boolean
+  level: Level
+  /** Level words studied before and after this session, out of `total`. */
+  before: number
+  after: number
+  total: number
+}
+
 type Phase =
   | { name: "learn"; card: number }
   | { name: "quiz"; questions: QuizQuestion[] }
-  | { name: "results"; results: QuizResult[] }
+  | { name: "match"; attempts: QuizResult[]; pairs: ReturnType<typeof matchPairs> }
+  | { name: "results"; outcome: Outcome }
+
+/** Counts up from 0 to `to` over a second. */
+function CountUp({ to }: { to: number }) {
+  const [n, setN] = useState(0)
+  useEffect(() => {
+    let frame = 0
+    const start = performance.now()
+    const tick = (t: number) => {
+      const k = Math.min(1, (t - start) / 1000)
+      setN(Math.round(to * (1 - (1 - k) ** 3)))
+      if (k < 1) frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [to])
+  return <>{n}</>
+}
+
+/** Level bar that starts at `from` and fills to `to`. */
+function LevelFill({ from, to, total }: { from: number; to: number; total: number }) {
+  const [value, setValue] = useState(from)
+  useEffect(() => {
+    const t = setTimeout(() => setValue(to), 400)
+    return () => clearTimeout(t)
+  }, [to])
+  return (
+    <LinearProgress
+      value={(value / total) * 100}
+      aria-label="Level progress"
+      sx={{ height: 10, "& .MuiLinearProgress-bar": { transitionDuration: "1s" } }}
+    />
+  )
+}
 
 interface SessionViewProps {
   lang: string
@@ -248,6 +298,37 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
     )
   }
 
+  const sound = progress.settings.sound
+  const toggleSound = () => update((p) => ({ ...p, settings: { ...p.settings, sound: !p.settings.sound } }))
+
+  const finish = (attempts: QuizResult[], matchMistakes?: number) => {
+    // Earlier sessions with each word: reviews earn less XP than first study.
+    const summary = summarize(
+      attempts,
+      matchMistakes,
+      (id) => progress.history.filter((h) => h.words.includes(id)).length
+    )
+    const now = new Date()
+    const record = (p: typeof progress) => recordSession(p, summary.progress, mode, now, summary.xp)
+    const after = record(progress)
+    const level = currentLevel(index, progress)
+    const { done: before, total } = levelProgress(index, progress, level)
+    update(record)
+    if (sound) playSfx("done")
+    setPhase({
+      name: "results",
+      outcome: {
+        summary,
+        streak: after.streak,
+        streakUp: after.streak > progress.streak,
+        level,
+        before,
+        after: levelProgress(index, after, level).done,
+        total,
+      },
+    })
+  }
+
   if (phase.name === "quiz") {
     return (
       <>
@@ -255,29 +336,39 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
         <Quiz
           questions={phase.questions}
           lang={lang}
-          onDone={(results) => {
-            update((p) =>
-              recordSession(
-                p,
-                results.map((r) => ({ wordId: r.question.wordId, correct: r.grade !== "wrong" })),
-                mode
-              )
-            )
-            setPhase({ name: "results", results })
+          sound={sound}
+          onToggleSound={toggleSound}
+          onDone={(attempts) => {
+            const pairs = matchPairs(items.map((i) => i.word))
+            // Too few distinct words left (skips) for a match round: straight to results.
+            if (pairs.length < 3) finish(attempts)
+            else setPhase({ name: "match", attempts, pairs })
           }}
         />
       </>
     )
   }
 
-  const { results } = phase
-  const score = results.filter((r) => r.grade !== "wrong").length
-  const missed = items.filter((i) => results.some((r) => r.question.wordId === i.word.id && r.grade === "wrong"))
+  if (phase.name === "match") {
+    const { attempts } = phase
+    return (
+      <>
+        <Top title="Quiz" />
+        <MatchRound pairs={phase.pairs} lang={lang} sound={sound} onDone={(mistakes) => finish(attempts, mistakes)} />
+      </>
+    )
+  }
+
+  const { summary, streak, streakUp, level, before, after, total } = phase.outcome
+  const missed = items.filter((i) => summary.missed.includes(i.word.id))
+  const perfect = summary.score === summary.total
   return (
     <>
       <Box
         component="section"
         sx={{
+          position: "relative",
+          overflow: "hidden",
           mt: 3.5,
           p: 3,
           textAlign: "center",
@@ -286,21 +377,63 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
           borderRadius: `${RADIUS}px`,
         }}
       >
+        <Confetti />
         <Box component="span" sx={{ fontSize: 14, fontWeight: 600 }}>
           {title} complete
         </Box>
         <Box sx={{ ...displayFontSx, ...numSx, fontSize: 72, lineHeight: 1, my: 1 }}>
-          {score}/{results.length}
+          +<CountUp to={summary.xp} /> XP
         </Box>
+        {summary.share < 1 && (
+          <Box sx={{ fontSize: 14, color: C.muted, mb: 1 }}>Words you&apos;ve reviewed before earn less XP.</Box>
+        )}
         <Box component="p" sx={{ m: 0 }}>
-          {missed.length === 0
-            ? "Every answer right."
-            : `${missed.length} word${missed.length > 1 ? "s" : ""} to practise again.`}
+          {perfect
+            ? "Flawless. Every answer right the first time."
+            : missed.length === 0
+              ? "You fixed every miss on the second try."
+              : `${missed.length} word${missed.length > 1 ? "s" : ""} to practise again.`}
         </Box>
       </Box>
+      <StatLine
+        stats={[
+          {
+            label: "Accuracy",
+            value: `${summary.total ? Math.round((summary.score / summary.total) * 100) : 0}%`,
+          },
+          { label: "Best combo", value: `🔥 ${summary.bestCombo}` },
+          {
+            label: "Day streak",
+            value: (
+              <>
+                {streak}
+                {streakUp && (
+                  <Box component="span" sx={{ fontSize: 16, color: C.green, ml: 0.75, verticalAlign: "middle" }}>
+                    +1
+                  </Box>
+                )}
+              </>
+            ),
+          },
+        ]}
+      />
+      {total > 0 && (
+        <Box sx={{ mt: 2.5 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1, fontSize: 14 }}>
+            <Box component="span" sx={{ fontWeight: 600 }}>
+              {levelLabel(level)}
+            </Box>
+            <Box component="span" sx={{ ...numSx, color: C.muted }}>
+              {after} / {total}
+              {after > before && ` (+${after - before})`}
+            </Box>
+          </Box>
+          <LevelFill from={before} to={after} total={total} />
+        </Box>
+      )}
       <List disablePadding sx={{ mt: 2.5, borderTop: `1px solid ${C.line}` }}>
         {items.map(({ word, review }) => {
-          const wrong = results.filter((r) => r.question.wordId === word.id && r.grade === "wrong").length
+          const wrong = summary.progress.filter((r) => r.wordId === word.id && !r.correct).length
           return (
             <li key={word.id}>
               <ListItemButton
@@ -330,15 +463,26 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
           )
         })}
       </List>
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.25, mt: 2.5 }}>
+      {/* Equal widths, wrapping on phones; the filled button carries on with the same kind of session. */}
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.25, mt: 2.5, "& > *": { flex: "1 1 160px" } }}>
+        <ButtonLink href={`/${lang}/`} variant="contained">
+          Home
+        </ButtonLink>
         {missed.length > 0 && (
           <ButtonLink href={`/${lang}/session/?mode=review&filter=practice`} variant="outlined" onClick={onRestart}>
             Practise missed words
           </ButtonLink>
         )}
-        <Button sx={{ flex: 1 }} onClick={onRestart}>
-          {mode === "review" ? "Review more" : "Next lesson"}
-        </Button>
+        <ButtonLink href={`/${lang}/session/?mode=review`} variant="outlined" onClick={onRestart}>
+          {mode === "review" ? "Review more" : "Review"}
+        </ButtonLink>
+        <ButtonLink
+          href={`/${lang}/session/`}
+          variant={mode === "lesson" ? "contained" : "outlined"}
+          onClick={onRestart}
+        >
+          Next lesson
+        </ButtonLink>
       </Box>
     </>
   )

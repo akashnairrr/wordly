@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 import { emptyProgress, skipWord, unskipWord } from "./progress"
-import { difficulty, pickNewWords, planLesson, reviewQueue, wordStatus } from "./session"
+import { difficulty, pickNewWords, planLesson, reviewQueue, strength, wordStatus } from "./session"
 import { pool } from "./test-fixtures"
 
 describe("session", () => {
@@ -11,6 +11,17 @@ describe("session", () => {
     assert.deepEqual(
       pickNewWords(pool, p, 5).map((w) => w.id),
       ["casa", "bueno", "ser", "ir", "hacer"]
+    )
+  })
+
+  it("strength: 0 unstudied, 1 needs practice, a bar per net right answer up to 4", () => {
+    const at = (correct: number, wrong: number) =>
+      strength("w", { ...emptyProgress(), learned: { w: { learnedAt: "", correct, wrong } } })
+    assert.equal(strength("w", emptyProgress()), 0)
+    assert.deepEqual([at(0, 2), at(1, 1), at(2, 0), at(9, 1)], [1, 1, 3, 4])
+    assert.equal(
+      strength("w", skipWord({ ...emptyProgress(), learned: { w: { learnedAt: "", correct: 3, wrong: 0 } } }, "w")),
+      0
     )
   })
 

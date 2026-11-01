@@ -25,9 +25,17 @@ export interface QuizQuestion {
 
 export type Grade = "correct" | "accent" | "wrong"
 
+/** One answered question. A question missed on the first try comes back once more, as a retry. */
+export interface QuizResult {
+  question: QuizQuestion
+  given: string
+  grade: Grade
+  retry: boolean
+}
+
 type Rng = () => number
 
-function shuffle<T>(xs: T[], rng: Rng): T[] {
+export function shuffle<T>(xs: T[], rng: Rng): T[] {
   const a = xs.slice()
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1))
@@ -69,9 +77,47 @@ interface Ctx {
   rng: Rng
 }
 
-const samePos = (w: Word, pool: IndexEntry[]) => {
-  const same = pool.filter((p) => p.pos === w.pos && p.id !== w.id)
-  return same.length >= 3 ? same : pool.filter((p) => p.id !== w.id)
+/**
+ * Option-sized meaning: no parentheses, the shortest ";" sense, at most two "," synonyms.
+ * "I (first person singular (subject) pronoun)" → "I"; "masculine singular definite article; the" → "the".
+ */
+export function shortGloss(g: string): string {
+  let s = g
+  for (let prev = ""; prev !== s;) [prev, s] = [s, s.replace(/\([^()]*\)/g, "")]
+  const senses = s
+    .split(";")
+    .map((x) => x.replace(/\s+/g, " ").replace(/ ,/g, ",").replace(/\.$/, "").trim())
+    .filter(Boolean)
+  const shortest = senses.reduce<string | undefined>((a, x) => (a && a.length <= x.length ? a : x), undefined)
+  return shortest?.split(", ").slice(0, 2).join(", ") || g
+}
+
+/** Splits out bracketed notes, nested ones included: "I (first (subject) person)" → "I ", "(first (subject) person)". */
+export function splitAsides(text: string): { text: string; aside: boolean }[] {
+  const parts: { text: string; aside: boolean }[] = []
+  let depth = 0
+  for (const ch of text) {
+    const aside = depth > 0 || ch === "("
+    if (ch === "(") depth++
+    if (ch === ")") depth = Math.max(0, depth - 1)
+    const last = parts.at(-1)
+    if (last?.aside === aside) last.text += ch
+    else parts.push({ text: ch, aside })
+  }
+  return parts
+}
+
+// Inflection glosses ("Dative singular … forms of alles") and usage notes ("Used as an emphatic pronoun…") look
+// nothing like a meaning and give the answer away.
+const odd = (gloss: string) => /\bforms? of\b/i.test(gloss) || shortGloss(gloss).length > 30
+
+/** Distractor candidates: same part of speech, closest in frequency rank, so they're about as familiar as the word. */
+export function nearby(w: Pick<Word, "id" | "pos" | "rank">, pool: IndexEntry[]): IndexEntry[] {
+  const others = pool.filter((p) => p.id !== w.id && !odd(p.gloss))
+  const same = others.filter((p) => p.pos === w.pos)
+  return (same.length >= 3 ? same : others)
+    .sort((a, b) => Math.abs(a.rank - w.rank) - Math.abs(b.rank - w.rank))
+    .slice(0, 8)
 }
 
 const sayWord = (w: Word) => ({ text: w.lemma, audio: w.audio })
@@ -82,11 +128,11 @@ const meaning: Maker = (w, { pool, rng }) => ({
   wordId: w.id,
   prompt: w.lemma,
   options: options(
-    w.glosses[0],
-    samePos(w, pool).map((p) => p.gloss),
+    shortGloss(w.glosses[0]),
+    nearby(w, pool).map((p) => shortGloss(p.gloss)),
     rng
   ),
-  answer: w.glosses[0],
+  answer: shortGloss(w.glosses[0]),
   reveal: sayWord(w),
 })
 
@@ -96,7 +142,7 @@ const reverse: Maker = (w, { pool, rng }) => ({
   prompt: w.glosses[0],
   options: options(
     w.lemma,
-    samePos(w, pool).map((p) => p.lemma),
+    nearby(w, pool).map((p) => p.lemma),
     rng
   ),
   answer: w.lemma,
@@ -116,7 +162,7 @@ const listenSelect: Maker = (w, { pool, rng }) =>
         audioUrl: w.audio,
         options: options(
           w.lemma,
-          samePos(w, pool).map((p) => p.lemma),
+          nearby(w, pool).map((p) => p.lemma),
           rng
         ),
         answer: w.lemma,
@@ -132,7 +178,7 @@ const listenType: Maker = (w) =>
         prompt: "",
         audio: w.lemma,
         audioUrl: w.audio,
-        hint: w.glosses[0],
+        hint: shortGloss(w.glosses[0]),
         answer: w.lemma,
         reveal: sayWord(w),
       }
@@ -173,7 +219,7 @@ const gender: Maker = (w, { lang }) => {
     kind: "gender",
     wordId: w.id,
     prompt: w.lemma,
-    hint: w.glosses[0],
+    hint: shortGloss(w.glosses[0]),
     // el / la, or der / die / das.
     options: Object.values(lang.articles),
     answer: article,
@@ -189,7 +235,7 @@ const genderedForm: Maker = (w, { rng }) => {
     kind: "gendered-form",
     wordId: w.id,
     prompt: w.lemma,
-    hint: w.glosses[0],
+    hint: shortGloss(w.glosses[0]),
     options: options(
       f.feminine,
       [w.lemma, f.masculinePlural, f.femininePlural, f.plural].filter(Boolean) as string[],
@@ -208,7 +254,7 @@ const cloze: Maker = (w, { pool, rng }) => {
     if (!hit) continue
     const re = new RegExp(`(?<!\\p{L})${hit}(?!\\p{L})`, "iu")
     const answer = ex.text.match(re)![0]
-    const others = forms.length >= 4 ? forms : samePos(w, pool).map((p) => p.lemma)
+    const others = forms.length >= 4 ? forms : nearby(w, pool).map((p) => p.lemma)
     return {
       kind: "cloze",
       wordId: w.id,
@@ -272,4 +318,68 @@ export const QUESTION_TITLES: Record<QuestionKind, string> = {
   gender: "Which article?",
   "gendered-form": "What is the feminine form?",
   cloze: "Fill in the blank",
+}
+
+export const XP = { firstTry: 10, retry: 5, perfect: 20, match: 10, matchWithMistakes: 5 } as const
+
+/** Share of XP a word earns by how many earlier sessions it was in: full when new, then ½, ¼, nothing. */
+export const xpShare = (timesSeen: number) => [1, 0.5, 0.25][timesSeen] ?? 0
+
+export interface QuizSummary {
+  /** First tries right, out of questions asked. */
+  score: number
+  total: number
+  /** Longest run of right answers, retries included, in the order answered. */
+  bestCombo: number
+  xp: number
+  /** Average XP share of the quiz's words: below 1 when reviewed words earned less. */
+  share: number
+  /** Words with a question still wrong after its retry. */
+  missed: string[]
+  /** One entry per question: right on the first try or the retry. */
+  progress: { wordId: string; correct: boolean }[]
+}
+
+/**
+ * Scores a finished quiz. `matchMistakes` is undefined when the match round didn't run.
+ * `timesSeen` counts a word's earlier sessions; answers earn XP by their word's share, bonuses by the average share.
+ */
+export function summarize(
+  attempts: QuizResult[],
+  matchMistakes?: number,
+  timesSeen: (wordId: string) => number = () => 0
+): QuizSummary {
+  const ok = (r: QuizResult) => r.grade !== "wrong"
+  const first = attempts.filter((r) => !r.retry)
+  const retries = attempts.filter((r) => r.retry)
+  const progress = first.map((r) => ({
+    wordId: r.question.wordId,
+    // A word's questions are of different kinds, so word + kind pairs a retry with its first try.
+    correct:
+      ok(r) ||
+      retries.some((x) => x.question.wordId === r.question.wordId && x.question.kind === r.question.kind && ok(x)),
+  }))
+  let combo = 0
+  let bestCombo = 0
+  for (const r of attempts) bestCombo = Math.max(bestCombo, (combo = ok(r) ? combo + 1 : 0))
+  const score = first.filter(ok).length
+  const shareOf = (r: QuizResult) => xpShare(timesSeen(r.question.wordId))
+  const words = [...new Set(first.map((r) => r.question.wordId))]
+  const share = words.length ? words.reduce((sum, id) => sum + xpShare(timesSeen(id)), 0) / words.length : 1
+  const xp = Math.round(
+    first.filter(ok).reduce((sum, r) => sum + XP.firstTry * shareOf(r), 0) +
+      retries.filter(ok).reduce((sum, r) => sum + XP.retry * shareOf(r), 0) +
+      share *
+        ((first.length && score === first.length ? XP.perfect : 0) +
+          (matchMistakes === undefined ? 0 : matchMistakes ? XP.matchWithMistakes : XP.match))
+  )
+  return {
+    score,
+    total: first.length,
+    bestCombo,
+    xp,
+    share,
+    missed: [...new Set(progress.filter((p) => !p.correct).map((p) => p.wordId))],
+    progress,
+  }
 }

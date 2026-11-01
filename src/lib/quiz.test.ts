@@ -1,9 +1,21 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
-import { buildQuiz, grade, normalizeAnswer, type QuizQuestion } from "./quiz"
+import {
+  buildQuiz,
+  grade,
+  nearby,
+  normalizeAnswer,
+  type QuizQuestion,
+  type QuizResult,
+  shortGloss,
+  splitAsides,
+  summarize,
+  XP,
+  xpShare,
+} from "./quiz"
 import { bueno, casa, es, pool, seeded, tener } from "./test-fixtures"
 import { getLanguage } from "./languages"
-import type { Word } from "./types"
+import type { IndexEntry, Word } from "./types"
 
 describe("buildQuiz / grade", () => {
   it("two questions per word, answer always among options", () => {
@@ -92,5 +104,93 @@ describe("buildQuiz / grade", () => {
           assert.equal(q.reveal.text, q.answer)
       }
     }
+  })
+
+  it("shortGloss keeps the core meaning", () => {
+    assert.equal(shortGloss("I (first person singular nominative (subject) pronoun)"), "I")
+    assert.equal(shortGloss("she; her"), "she")
+    assert.equal(shortGloss("of the, from the (+ a masculine noun in singular)."), "of the, from the")
+    assert.equal(shortGloss("(only in parentheses)"), "(only in parentheses)", "never empty")
+    assert.equal(shortGloss("first-person singular pronoun in the nominative case; I"), "I", "shortest sense")
+    assert.equal(shortGloss("you (singular familiar), thou"), "you, thou")
+    assert.equal(shortGloss("to make, to produce, to create"), "to make, to produce")
+  })
+
+  it("splitAsides separates bracketed notes, nested too", () => {
+    assert.deepEqual(splitAsides("I (first (subject) pronoun) here"), [
+      { text: "I ", aside: false },
+      { text: "(first (subject) pronoun)", aside: true },
+      { text: " here", aside: false },
+    ])
+    assert.deepEqual(splitAsides("house"), [{ text: "house", aside: false }])
+  })
+
+  it("distractors come from the closest ranks, without inflection glosses", () => {
+    const entry = (rank: number, gloss = `word ${rank}`): IndexEntry => ({
+      id: `w${rank}`,
+      lemma: `w${rank}`,
+      pos: "pron",
+      rank,
+      gloss,
+    })
+    const big = [
+      ...Array.from({ length: 40 }, (_, n) => entry(n * 10 + 10)),
+      entry(101, "Dative singular forms of alles"),
+    ]
+    const near = nearby({ id: "x", pos: "pron", rank: 100 }, big)
+    assert.equal(near.length, 8)
+    assert.ok(
+      near.every((p) => Math.abs(p.rank - 100) <= 40),
+      "closest ranks only"
+    )
+    assert.ok(!near.some((p) => p.id === "w101"), "inflection gloss excluded")
+  })
+})
+
+describe("summarize", () => {
+  const q = (wordId: string): QuizQuestion => ({
+    kind: "meaning",
+    wordId,
+    prompt: wordId,
+    answer: "a",
+    reveal: { text: wordId },
+  })
+  const [a, b, c] = [q("a"), q("b"), q("c")]
+  const r = (question: QuizQuestion, right: boolean, retry = false): QuizResult => ({
+    question,
+    given: right ? "a" : "x",
+    grade: right ? "correct" : "wrong",
+    retry,
+  })
+
+  it("scores first tries; one retry decides what progress records", () => {
+    // b: wrong, then right on retry. c: wrong twice.
+    const s = summarize([r(a, true), r(b, false), r(c, false), r(b, true, true), r(c, false, true)])
+    assert.deepEqual([s.score, s.total], [1, 3])
+    assert.deepEqual(s.progress, [
+      { wordId: "a", correct: true },
+      { wordId: "b", correct: true },
+      { wordId: "c", correct: false },
+    ])
+    assert.deepEqual(s.missed, ["c"])
+    assert.equal(s.xp, XP.firstTry + XP.retry)
+    assert.equal(s.bestCombo, 1)
+  })
+
+  it("perfect run and match round bonuses; combo counts the longest streak", () => {
+    const s = summarize([r(a, true), r(b, true), r(c, true)], 0)
+    assert.equal(s.xp, 3 * XP.firstTry + XP.perfect + XP.match)
+    assert.equal(s.bestCombo, 3)
+    assert.equal(summarize([r(a, true)], 2).xp, XP.firstTry + XP.perfect + XP.matchWithMistakes)
+  })
+
+  it("reviewed words earn less: full, then half, a quarter, nothing", () => {
+    assert.deepEqual([0, 1, 2, 3, 9].map(xpShare), [1, 0.5, 0.25, 0, 0])
+    // a new, b on its first review, c on its third: answers 10 + 5 + 0, bonuses at the average share of 0.5.
+    const seen = { a: 0, b: 1, c: 3 } as Record<string, number>
+    const s = summarize([r(a, true), r(b, true), r(c, true)], 0, (id) => seen[id]!)
+    assert.equal(s.share, 0.5)
+    assert.equal(s.xp, 15 + 0.5 * (XP.perfect + XP.match))
+    assert.equal(summarize([r(c, true)], 0, () => 5).xp, 0, "well-worn words earn nothing")
   })
 })
