@@ -14,7 +14,8 @@ export function ThemeRegistry({ children }: ThemeRegistryProps) {
   return (
     <AppRouterCacheProvider>
       <ThemeProvider theme={theme}>
-        <CssBaseline />
+        {/* Sets color-scheme, so form controls and scrollbars match the page. */}
+        <CssBaseline enableColorScheme />
         {children}
       </ThemeProvider>
     </AppRouterCacheProvider>

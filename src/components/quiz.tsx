@@ -118,7 +118,7 @@ export function Quiz({ questions, lang, onDone }: QuizProps) {
           <IconButton
             onClick={() => play()}
             aria-label="Play the word again"
-            sx={{ width: 64, height: 64, bgcolor: C.venice, color: C.merino, "&:hover": { bgcolor: C.venice } }}
+            sx={{ width: 64, height: 64, bgcolor: C.primary, color: C.onPrimary, "&:hover": { bgcolor: C.primary } }}
           >
             <SvgIcon sx={{ fontSize: 28 }}>
               <path d="M8 5v14l11-7z" />

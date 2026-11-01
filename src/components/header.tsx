@@ -11,6 +11,7 @@ import { getLanguage } from "@/lib/languages"
 import { saveLastLanguage } from "@/lib/last-language"
 import { C, columnSx, displayFontSx, Z } from "@/theme"
 import { ConfirmModal } from "./confirm-dialog"
+import { DarkModeToggle } from "./dark-mode-toggle"
 import { LanguageSelect } from "./language-select"
 
 // Small phones (iPhone SE, 320px): logo, three links and the language flag only just fit.
@@ -41,7 +42,10 @@ export function Header({ lang }: HeaderProps) {
       color="inherit"
       sx={{ zIndex: Z.header, bgcolor: C.merino, borderBottom: `1px solid ${C.line}`, pt: "env(safe-area-inset-top)" }}
     >
-      <Toolbar disableGutters sx={{ ...columnSx, width: "100%", minHeight: 60, gap: { xs: 0.75, sm: 2.5 } }}>
+      <Toolbar
+        disableGutters
+        sx={{ ...columnSx, width: "100%", minHeight: 60, gap: { xs: 0.5, sm: 2.5 }, [TINY]: { gap: 0.25 } }}
+      >
         <Box
           component={NextLink}
           href="/"
@@ -51,16 +55,12 @@ export function Header({ lang }: HeaderProps) {
             color: C.venice,
             textDecoration: "none",
             lineHeight: 1,
-            [TINY]: { fontSize: 22 },
+            [TINY]: { fontSize: 20 },
           }}
         >
           wordly
         </Box>
-        <Box
-          component="nav"
-          aria-label="Main"
-          sx={{ display: "flex", gap: { xs: 0.25, sm: 0.5 }, flex: 1, minWidth: 0 }}
-        >
+        <Box component="nav" aria-label="Main" sx={{ display: "flex", gap: { xs: 0, sm: 0.5 }, flex: 1, minWidth: 0 }}>
           {links.map((l) => (
             <Button
               key={l.href}
@@ -72,10 +72,10 @@ export function Header({ lang }: HeaderProps) {
                 minHeight: 0,
                 minWidth: 0,
                 flexShrink: 0,
-                px: { xs: 0.75, sm: 1.25 },
+                px: { xs: 0.5, sm: 1.25 },
                 py: 1,
                 fontSize: { xs: 15, sm: 17 },
-                [TINY]: { fontSize: 14, px: 0.5 },
+                [TINY]: { fontSize: 13, px: 0.375 },
                 fontWeight: 500,
                 "&[aria-current=page]": {
                   color: C.venice,
@@ -90,6 +90,7 @@ export function Header({ lang }: HeaderProps) {
           ))}
         </Box>
         <LanguageSelect size="small" value={lang} onChange={(to) => to !== lang && setSwitchTo(to)} />
+        <DarkModeToggle sx={{ width: { xs: 32, sm: 36 }, height: { xs: 32, sm: 36 }, [TINY]: { width: 30 } }} />
         {switchTo && (
           <ConfirmModal
             open
