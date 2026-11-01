@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 import { allForms } from "../../src/lib/words"
-import { bestEntry, toWord, wordId } from "./normalize"
+import { bestEntry, resolveIdClashes, toWord, wordId } from "./normalize"
 import type { RawEntry } from "./wiktionary"
 
 // Trimmed from real kaikki.org entries.
@@ -308,5 +308,88 @@ describe("normalize: Russian", () => {
     assert.equal(wordId("хорошо"), "khorosho")
     assert.notEqual(wordId("брат"), wordId("брать"))
     assert.equal(wordId("ещё"), "eshchyo")
+  })
+})
+
+describe("normalize: Italian", () => {
+  const conj = (form: string, ...tags: string[]) => ({ form, tags, source: "conjugation" })
+  const perfect = {
+    auxiliaries: {
+      avere: { "1s": "ho", "2s": "hai", "3s": "ha", "1p": "abbiamo", "2p": "avete", "3p": "hanno" },
+      essere: { "1s": "sono", "2s": "sei", "3s": "è", "1p": "siamo", "2p": "siete", "3p": "sono" },
+    },
+    agreeing: "essere",
+    plural: (p: string) => p.replace(/o$/, "i"),
+  }
+
+  it("strips dictionary stress marks but keeps real final accents; passato remoto; built passato prossimo", () => {
+    const w = toWord(
+      {
+        word: "fare",
+        pos: "verb",
+        senses: [{ glosses: ["to do, to make"] }],
+        forms: [
+          { form: "avére", tags: ["auxiliary"], source: "conjugation" },
+          conj("fàtto", "participle", "past"),
+          conj("fàccio", "first-person", "indicative", "present", "singular"),
+          conj("fà", "indicative", "present", "singular", "third-person"),
+          conj("fàcciamo", "first-person", "indicative", "plural", "present"),
+          conj("féci", "first-person", "historic", "indicative", "past", "singular"),
+          conj("farò", "first-person", "future", "indicative", "singular"),
+          conj("féi", "archaic", "first-person", "historic", "indicative", "past", "poetic", "singular"),
+        ],
+      },
+      1,
+      undefined,
+      { stressMarks: true, perfect }
+    )!
+    assert.deepEqual(w.conjugation?.indicative, {
+      present: { "1s": "faccio", "3s": "fa", "1p": "facciamo" },
+      preterite: { "1s": "feci" },
+      future: { "1s": "farò" },
+      perfect: { "1s": "ho fatto", "3s": "ha fatto", "1p": "abbiamo fatto" },
+    })
+  })
+
+  it("clitic compounds and bare verb forms aren't words of their own; pronouns described by person still are", () => {
+    const e = (word: string, pos: string, gloss: string): RawEntry => ({ word, pos, senses: [{ glosses: [gloss] }] })
+    assert.equal(
+      toWord(e("dimmi", "verb", "compound of di', the second-person singular imperative of dire, and mi"), 1),
+      undefined
+    )
+    assert.equal(
+      toWord(e("possiamo", "verb", "first-person plural present indicative/present subjunctive of potere"), 1),
+      undefined
+    )
+    assert.ok(toWord(e("yo", "pron", "first-person singular pronoun; I"), 1))
+  })
+
+  it("verbs with essere agree in the plural", () => {
+    const w = toWord(
+      {
+        word: "andare",
+        pos: "verb",
+        senses: [{ glosses: ["to go"] }],
+        forms: [
+          { form: "essere", tags: ["auxiliary"], source: "conjugation" },
+          conj("andàto", "participle", "past"),
+          conj("vàdo", "first-person", "indicative", "present", "singular"),
+          conj("andiàmo", "first-person", "indicative", "plural", "present"),
+        ],
+      },
+      1,
+      undefined,
+      { stressMarks: true, perfect }
+    )!
+    assert.deepEqual(w.conjugation?.indicative?.perfect, { "1s": "sono andato", "1p": "siamo andati" })
+  })
+})
+
+describe("resolveIdClashes", () => {
+  it("only clashing words change, and the acute-accented one keeps the plain ID", () => {
+    const w = (lemma: string) => ({ id: wordId(lemma), lemma })
+    const ids = resolveIdClashes([w("avô"), w("avó"), w("lá"), w("lã"), w("à"), w("á"), w("año")]).map((x) => x.id)
+    assert.deepEqual(ids, ["avo_c", "avo_", "la_", "la_t", "a_g", "a_", "an_o"])
+    assert.equal(new Set(ids).size, ids.length)
   })
 })

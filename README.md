@@ -8,7 +8,7 @@ Learn the most common words of a language **in context**: meaning, native-speake
 - **Skip**: leave a word out while learning (it won't come back as new; add it back from its page). Quiz questions can't be skipped.
 - **Audio**: native recordings for most words and sentences (Lingua Libre, Wiktionary, Tatoeba); the browser's most natural voice fills the gaps.
 
-Spanish, German and Russian so far; built to add more languages. Static Next.js app with no backend. Progress lives in the browser's localStorage (export/import backup on the Progress page).
+Spanish, German, Russian, Italian and Portuguese (Brazilian) so far; built to add more languages. Static Next.js app with no backend. Progress lives in the browser's localStorage (export/import backup on the Progress page).
 
 ## Run
 
@@ -56,7 +56,7 @@ Spot-check the words after a run; fix misresolved ones in `scripts/build-data/ov
 
 ## Adding a language
 
-Spanish (`es`), German (`de`) and Russian (`ru`) are built. For another language:
+Spanish (`es`), German (`de`), Russian (`ru`), Italian (`it`) and Portuguese (`pt`, Brazilian) are built. For another language:
 
 1. Add sources in `scripts/build-data/sources.ts` (FrequencyWords, kaikki, manythings and Lingua Libre all cover many languages).
 2. Add a registry entry in `src/lib/languages.ts`: TTS locales, articles (with neuter if the language has it; leave them out for languages without, and the gender quiz asks for the gender by name), person labels, tenses to show, pronouns speakers drop, `capitalisedNouns` for languages like German, and `pastLabels` for a past tense that goes by gender (Russian).
@@ -66,6 +66,8 @@ Spanish (`es`), German (`de`) and Russian (`ru`) are built. For another language
 Conjugation parsing in `normalize.ts` relies on Wiktionary's mood/tense/person tags, which are shared across languages. Variant filters cover Spanish (vos, -se subjunctive) and German (subordinate-clause order, Konjunktiv I, pluperfect, Futur II); compound tenses such as the German Perfekt are kept as two-word forms. German words are matched case-insensitively, so nouns (Haus) are found from the lowercase frequency list.
 
 Russian needs a few extras, all generic: stress marks (до́ма) and optional parts ((по)новее) are stripped from forms; the noun plural comes from "nominative plural" and adjective gender forms from the nominative row of the declension table; the past tense is stored by gender (`past`: делал, делала, делало, делали) instead of person; verbs record their aspect and partner (делать ↔ сделать); and word IDs transliterate Cyrillic (дом → `dom`, with `_` for the soft sign).
+
+Italian adds three options: `articleBefore` writes the article the way it's spelled before the noun (l'albero, lo zio); `formsMarkStress` strips the stress marks Wiktionary puts on forms (fàccio → faccio, keeping real final accents like farò and written ones like è, più); and `compoundPerfect` builds the spoken past (ho fatto, siamo andati) from the auxiliary and participle, which the tables leave out. Wiktionary meanings that only describe a form ("compound of di' … and mi", "first-person plural present indicative of …") don't count as words. Where two words would share an ID (Portuguese avó / avô), the acute-accented one keeps it and the other spells its mark out (`avo_c`).
 
 ## Deploy (GitHub Pages)
 
