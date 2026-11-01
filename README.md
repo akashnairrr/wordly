@@ -8,7 +8,7 @@ Learn the most common words of a language **in context**: meaning, native-speake
 - **Skip**: leave a word out while learning (it won't come back as new; add it back from its page). Quiz questions can't be skipped.
 - **Audio**: native recordings for most words and sentences (Lingua Libre, Wiktionary, Tatoeba); the browser's most natural voice fills the gaps.
 
-Spanish, French, German, Russian, Italian and Portuguese (European) so far; built to add more languages. Static Next.js app with no backend. Progress lives in the browser's localStorage (export/import backup on the Progress page).
+Spanish, French, German, Russian and Italian so far (Portuguese is built but hidden for now); built to add more languages. Static Next.js app with no backend. Progress lives in the browser's localStorage (export/import backup on the Progress page).
 
 ## Run
 
@@ -56,7 +56,7 @@ Spot-check the words after a run; fix misresolved ones in `scripts/build-data/ov
 
 ## Adding a language
 
-Spanish (`es`), French (`fr`, France), German (`de`), Russian (`ru`), Italian (`it`) and Portuguese (`pt`, European) are built. For another language:
+Spanish (`es`), French (`fr`, France), German (`de`), Russian (`ru`), Italian (`it`) and Portuguese (`pt`, European) are built. Portuguese has `hidden: true` until there's a good Portugal text-to-speech voice in common browsers: it keeps its data but gets no pages and isn't in the pickers. For another language:
 
 1. Add sources in `scripts/build-data/sources.ts` (FrequencyWords, kaikki, manythings and Lingua Libre all cover many languages).
 2. Add a registry entry in `src/lib/languages.ts`: TTS locales, articles (with neuter if the language has it; leave them out for languages without, and the gender quiz asks for the gender by name), person labels, tenses to show, pronouns speakers drop, `capitalisedNouns` for languages like German, and `pastLabels` for a past tense that goes by gender (Russian).

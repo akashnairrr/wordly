@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
-import { BASICS } from "./basics"
+import { ALPHABETS, BASICS } from "./basics"
 import { LANGUAGES } from "./languages"
 
 describe("basics", () => {
@@ -18,6 +18,14 @@ describe("basics", () => {
         const texts = e.examples?.map((x) => x.text) ?? []
         assert.equal(new Set(texts).size, texts.length, `${code}: duplicate example in ${e.title}`)
       }
+    }
+  })
+
+  it("every language has an alphabet chart with each letter once", () => {
+    for (const code of Object.keys(LANGUAGES)) {
+      const letters = ALPHABETS[code]?.map((l) => l.letter) ?? []
+      assert.ok(letters.length >= 26, `${code}: alphabet has ${letters.length} letters`)
+      assert.equal(new Set(letters).size, letters.length, `${code}: duplicate letter`)
     }
   })
 })
