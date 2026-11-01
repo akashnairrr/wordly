@@ -5,13 +5,13 @@ import { allForms } from "@/lib/words"
 import { C } from "@/theme"
 import { SpeakButton } from "./speak-button"
 
-// Colour pairs (word background / meaning text), each 5:1 or better on Merino.
+// Colour pairs (word background / meaning text), each 5:1 or better on the page background in both schemes.
 const COLORS = [
-  { bg: "#d6e6f0", fg: "#16587b" },
-  { bg: "#f6dcc7", fg: "#8a4317" },
-  { bg: "#dce9d3", fg: "#3d6a2a" },
-  { bg: "#e5ddf2", fg: "#5b3e8f" },
-  { bg: "#f1e3b5", fg: "#6f5208" },
+  { bg: C.tintSoft, fg: C.venice },
+  { bg: C.orangeSoft, fg: C.orange },
+  { bg: C.greenSoft, fg: C.green },
+  { bg: C.purpleSoft, fg: C.purple },
+  { bg: C.warningSoft, fg: C.warning },
 ]
 
 const pillSx = {
@@ -107,7 +107,7 @@ function GlossedSentence({ ex, forms, lang }: GlossedSentenceProps) {
           component="mark"
           key={k}
           lang={lang}
-          sx={{ ...pillSx, bgcolor: C.venice, color: C.merino, fontWeight: 700 }}
+          sx={{ ...pillSx, bgcolor: C.primary, color: C.onPrimary, fontWeight: 700 }}
         >
           {part}
         </Box>

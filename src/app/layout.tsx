@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next"
 import { Fraunces, Jost } from "next/font/google"
+import InitColorSchemeScript from "@mui/material/InitColorSchemeScript"
 import { ThemeRegistry } from "@/components/theme-registry"
+import { DARK, LIGHT } from "@/theme"
 import "./globals.css"
 
 const display = Fraunces({
@@ -20,16 +22,20 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#F5EEDD",
-  // Light only, on every device: "only" also opts out of browsers that darken pages themselves (Chrome's auto dark
-  // mode on Android, Samsung Internet's dark mode).
-  colorScheme: "only light",
+  // Follows the system scheme; a choice made with the header toggle only changes the page, not the browser bar.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: LIGHT.merino },
+    { media: "(prefers-color-scheme: dark)", color: DARK.merino },
+  ],
+  colorScheme: "light dark",
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`}>
+    // The init script sets the light / dark class before React hydrates.
+    <html lang="en" className={`${display.variable} ${body.variable}`} suppressHydrationWarning>
       <body>
+        <InitColorSchemeScript attribute="class" />
         <ThemeRegistry>{children}</ThemeRegistry>
       </body>
     </html>

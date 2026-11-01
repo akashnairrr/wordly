@@ -32,7 +32,7 @@ export function Flag({ country, height = 24 }: FlagProps) {
       width={height * 1.5}
       height={height}
       aria-hidden
-      style={{ borderRadius: 4, flexShrink: 0, boxShadow: "0 0 0 1px rgb(22 88 123 / 0.15)" }}
+      style={{ borderRadius: 4, flexShrink: 0, boxShadow: "0 0 0 1px var(--c-flagRing)" }}
     >
       {flag}
     </svg>

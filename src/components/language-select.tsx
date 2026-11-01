@@ -59,7 +59,7 @@ export function LanguageSelect({ value, onChange, size = "large", sx }: Language
             {
               minHeight: 36,
               borderRadius: 999,
-              "& .MuiSelect-select": { py: 0.75, pl: { xs: 1.25, sm: 1.75 }, pr: { xs: "10px !important", sm: 4 } },
+              "& .MuiSelect-select": { py: 0.75, pl: { xs: 1, sm: 1.75 }, pr: { xs: "8px !important", sm: 4 } },
               "& .MuiSelect-icon": { display: { xs: "none", sm: "block" } },
             },
         ...(Array.isArray(sx) ? sx : [sx ?? {}]),

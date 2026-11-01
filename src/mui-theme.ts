@@ -1,20 +1,24 @@
 "use client"
 
 import { createTheme } from "@mui/material/styles"
-import { C, displayFontSx, RADIUS, RADIUS_SM } from "./theme"
+import { C, cssVars, DARK, displayFontSx, LIGHT, RADIUS, RADIUS_SM } from "./theme"
 
 const headingSx = { ...displayFontSx, fontWeight: 700, lineHeight: 1.1, textWrap: "balance", color: C.venice } as const
 
+// MUI computes hover and disabled shades from these, so they take real colours; styles below use C's variables.
+const palette = (p: typeof LIGHT) => ({
+  primary: { main: p.primary, contrastText: p.onPrimary },
+  secondary: { main: p.rock, contrastText: p.onRock },
+  error: { main: p.danger, light: p.dangerSoft },
+  background: { default: p.merino, paper: p.surface },
+  text: { primary: p.venice, secondary: p.muted },
+  divider: p.line,
+})
+
 export const theme = createTheme({
-  palette: {
-    mode: "light",
-    primary: { main: C.venice, contrastText: C.merino },
-    secondary: { main: C.rock, contrastText: C.venice },
-    error: { main: C.danger, light: C.dangerSoft },
-    background: { default: C.merino, paper: C.surface },
-    text: { primary: C.venice, secondary: C.muted },
-    divider: C.line,
-  },
+  // Follows the system until the header toggle picks one; the choice is kept in localStorage (mui-mode).
+  cssVariables: { colorSchemeSelector: "class" },
+  colorSchemes: { light: { palette: palette(LIGHT) }, dark: { palette: palette(DARK) } },
   shape: { borderRadius: RADIUS_SM },
   typography: {
     fontFamily: "var(--font-body), system-ui, sans-serif",
@@ -28,9 +32,11 @@ export const theme = createTheme({
   components: {
     MuiCssBaseline: {
       styleOverrides: {
+        ":root": cssVars(LIGHT),
+        ":root.dark": cssVars(DARK),
         body: { WebkitFontSmoothing: "antialiased" },
         p: { textWrap: "pretty" },
-        "::selection": { background: C.rock, color: C.venice },
+        "::selection": { background: C.rock, color: C.onRock },
         ":focus-visible": { outline: `2px solid ${C.venice}`, outlineOffset: 2 },
       },
     },
@@ -44,7 +50,7 @@ export const theme = createTheme({
       defaultProps: { disableElevation: true, variant: "contained" },
       styleOverrides: {
         root: { borderRadius: 999, minHeight: 48, paddingInline: 22, gap: 8, "&.Mui-disabled": { opacity: 0.4 } },
-        contained: { "&.Mui-disabled": { background: C.venice, color: C.merino } },
+        contained: { "&.Mui-disabled": { background: C.primary, color: C.onPrimary } },
         outlined: {
           borderWidth: 1.5,
           borderColor: "currentColor",
@@ -129,7 +135,7 @@ export const theme = createTheme({
       styleOverrides: { paper: { borderRadius: RADIUS, padding: 8, maxWidth: "min(420px, calc(100vw - 32px))" } },
     },
     MuiBackdrop: {
-      styleOverrides: { root: { "&:not(.MuiBackdrop-invisible)": { background: "rgb(22 88 123 / 0.35)" } } },
+      styleOverrides: { root: { "&:not(.MuiBackdrop-invisible)": { background: C.backdrop } } },
     },
     MuiAlert: {
       defaultProps: { icon: false },
