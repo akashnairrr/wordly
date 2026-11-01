@@ -10,7 +10,7 @@ import { Flag } from "./flag"
 interface LanguageSelectProps {
   value: string
   onChange: (code: string) => void
-  /** "large" for the landing page, "small" for the header (flag only on phones). */
+  /** "large" for the landing page, "small" for the header (flag only below desktop width). */
   size?: "large" | "small"
   sx?: SelectProps["sx"]
 }
@@ -44,7 +44,7 @@ export function LanguageSelect({ value, onChange, size = "large", sx }: Language
               sx={
                 large
                   ? { ...displayFontSx, fontSize: 24, lineHeight: 1.2 }
-                  : { fontSize: 14, display: { xs: "none", sm: "inline" } }
+                  : { fontSize: 14, display: { xs: "none", md: "inline" } }
               }
             >
               {l.nativeName}
@@ -55,17 +55,17 @@ export function LanguageSelect({ value, onChange, size = "large", sx }: Language
       sx={[
         large
           ? { minHeight: 64 }
-          : // Flag-only on phones, so keep the padding tight there.
+          : // Flag-only below desktop width (the header has four links), so keep the padding tight there.
             {
               minHeight: 36,
               borderRadius: 999,
               // !important beats MUI's more specific input padding; without it the name runs under the arrow.
               "& .MuiSelect-select": {
                 py: 0.75,
-                pl: { xs: 1, sm: 1.75 },
-                pr: { xs: "8px !important", sm: "32px !important" },
+                pl: { xs: 1, md: 1.75 },
+                pr: { xs: "8px !important", md: "32px !important" },
               },
-              "& .MuiSelect-icon": { display: { xs: "none", sm: "block" } },
+              "& .MuiSelect-icon": { display: { xs: "none", md: "block" } },
             },
         ...(Array.isArray(sx) ? sx : [sx ?? {}]),
       ]}

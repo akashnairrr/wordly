@@ -129,6 +129,18 @@ export function HomeView({ lang }: HomeViewProps) {
         ]}
       />
 
+      {learned.length === 0 && (
+        <Paper component="section" variant="outlined" sx={{ p: 2.5, mt: 3 }}>
+          <Box component="p" sx={{ m: 0 }}>
+            New to {language.name}? Checkout{" "}
+            <TextLink href={`/${lang}/basics/`} sx={{ fontWeight: 600 }}>
+              {language.name} basics:
+            </TextLink>{" "}
+            the letters, sounds and rules English doesn&apos;t have.
+          </Box>
+        </Paper>
+      )}
+
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 2, mt: 3 }}>
         <Paper component="section" variant="outlined" sx={{ p: 2.5 }}>
           <SessionSizePicker
