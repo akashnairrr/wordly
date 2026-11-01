@@ -14,7 +14,9 @@ import { ConfirmModal } from "./confirm-dialog"
 import { DarkModeToggle } from "./dark-mode-toggle"
 import { LanguageSelect } from "./language-select"
 
-// Small phones (iPhone SE, 320px): logo, three links and the language flag only just fit.
+// Phones: logo, four links and the language flag only fit when shrunk. Small phones (iPhone SE, 320px) drop the logo;
+// Today and the flag still lead home and to other languages.
+const PHONE = "@media (max-width: 429.95px)"
 const TINY = "@media (max-width: 359.95px)"
 
 interface HeaderProps {
@@ -33,6 +35,7 @@ export function Header({ lang }: HeaderProps) {
   const links = [
     { href: `/${lang}/`, label: "Today", active: path === `/${lang}/` || path.startsWith(`/${lang}/session`) },
     { href: `/${lang}/words/`, label: "Words", active: path.startsWith(`/${lang}/word`) },
+    { href: `/${lang}/basics/`, label: "Basics", active: path.startsWith(`/${lang}/basics`) },
     { href: `/${lang}/progress/`, label: "Progress", active: path.startsWith(`/${lang}/progress`) },
   ]
   return (
@@ -55,7 +58,8 @@ export function Header({ lang }: HeaderProps) {
             color: C.venice,
             textDecoration: "none",
             lineHeight: 1,
-            [TINY]: { fontSize: 20 },
+            [PHONE]: { fontSize: 20 },
+            [TINY]: { display: "none" },
           }}
         >
           wordly
@@ -75,7 +79,7 @@ export function Header({ lang }: HeaderProps) {
                 px: { xs: 0.5, sm: 1.25 },
                 py: 1,
                 fontSize: { xs: 15, sm: 17 },
-                [TINY]: { fontSize: 13, px: 0.375 },
+                [PHONE]: { fontSize: 13, px: 0.375 },
                 fontWeight: 500,
                 "&[aria-current=page]": {
                   color: C.venice,
