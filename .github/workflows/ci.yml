@@ -25,4 +25,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm check
+      # pnpm check, with the tests run under coverage; the report also goes on the run's summary page.
+      - run: pnpm lint && pnpm format:check && pnpm typecheck
+      - name: Tests with coverage
+        shell: bash # -o pipefail: a failing test still fails the step despite tee
+        run: |
+          pnpm coverage | tee coverage.txt
+          { echo '### Test coverage'; echo '```'; sed -n '/start of coverage report/,/end of coverage report/{s/^# //;p}' coverage.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
