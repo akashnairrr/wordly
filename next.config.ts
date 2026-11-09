@@ -1,8 +1,7 @@
 import type { NextConfig } from "next"
 
-// Static export: the app is plain files (HTML/JS + public/data JSON), hostable on GitHub Pages.
+// Hosted on Vercel: pages are prerendered, and the translator's server action keeps the DeepL key on the server.
 const nextConfig: NextConfig = {
-  output: "export",
   basePath: process.env.NEXT_PUBLIC_BASE_PATH || undefined,
   trailingSlash: true,
 }

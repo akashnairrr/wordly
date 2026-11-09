@@ -6,7 +6,7 @@ import { C } from "@/theme"
 import { SpeakButton } from "./speak-button"
 
 // Colour pairs (word background / meaning text), each 5:1 or better on the page background in both schemes.
-const COLORS = [
+export const COLORS = [
   { bg: C.tintSoft, fg: C.venice },
   { bg: C.orangeSoft, fg: C.orange },
   { bg: C.greenSoft, fg: C.green },
