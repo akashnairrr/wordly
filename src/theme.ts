@@ -97,3 +97,8 @@ export const columnSx = {
   pl: "max(16px, env(safe-area-inset-left))",
   pr: "max(16px, env(safe-area-inset-right))",
 } as const
+
+/** Side nav beside the page column on desktop (md and up); a drawer below that. */
+export const NAV_WIDTH = 200
+/** Side nav + page column, centred; the header bar spans the same width. */
+export const shellSx = { maxWidth: NAV_WIDTH + columnSx.maxWidth, mx: "auto" } as const
