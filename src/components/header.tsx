@@ -15,6 +15,7 @@ import { C, columnSx, displayFontSx, NAV_WIDTH, shellSx, Z } from "@/theme"
 import { ConfirmModal } from "./confirm-dialog"
 import { DarkModeToggle } from "./dark-mode-toggle"
 import { LanguageSelect } from "./language-select"
+import { VersionChip } from "./version-chip"
 
 // The bar: 60px toolbar plus its 1px border, under the notch.
 const BAR_HEIGHT = "calc(61px + env(safe-area-inset-top))"
@@ -52,10 +53,12 @@ export function Header({ lang }: HeaderProps) {
         <Box
           component={NextLink}
           href="/"
-          sx={{ ...displayFontSx, fontSize: 26, color: C.venice, textDecoration: "none", lineHeight: 1, mr: "auto" }}
+          sx={{ ...displayFontSx, fontSize: 26, color: C.venice, textDecoration: "none", lineHeight: 1 }}
         >
           wordly
         </Box>
+        {/* Smallest phones (320px) have no room for it beside the language picker. */}
+        <VersionChip sx={{ mr: "auto", "@media (max-width: 359.95px)": { display: "none" } }} />
         <LanguageSelect size="small" value={lang} onChange={(to) => to !== lang && setSwitchTo(to)} />
         <DarkModeToggle />
         <Drawer

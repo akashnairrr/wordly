@@ -2,6 +2,7 @@ import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import { DarkModeToggle } from "@/components/dark-mode-toggle"
 import { TextLink } from "@/components/links"
+import { VersionChip } from "@/components/version-chip"
 import { C, columnSx, displayFontSx, RADIUS } from "@/theme"
 import { LanguageStart } from "./language-start"
 
@@ -10,8 +11,11 @@ export default function LanguagePicker() {
     <Box component="main" sx={{ ...columnSx, pb: 6 }}>
       <Box component="section" sx={{ pt: "calc(40px + env(safe-area-inset-top))", pb: 4 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 5 }}>
-          <Box component="p" sx={{ ...displayFontSx, fontSize: 28, color: C.venice, m: 0 }}>
-            wordly
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box component="p" sx={{ ...displayFontSx, fontSize: 28, color: C.venice, m: 0 }}>
+              wordly
+            </Box>
+            <VersionChip />
           </Box>
           <DarkModeToggle />
         </Box>
