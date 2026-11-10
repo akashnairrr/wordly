@@ -185,7 +185,7 @@ function GlossedText({ text, words, lang }: GlossedTextProps) {
                 px: "3px",
                 mx: "-3px",
                 borderRadius: "6px",
-                cursor: "help",
+                cursor: "pointer",
                 boxDecorationBreak: "clone",
                 transition: "background-color 120ms",
                 "&:hover, &:focus-visible": { bgcolor: c.bg, color: c.fg, outline: "none" },

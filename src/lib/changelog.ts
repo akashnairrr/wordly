@@ -5,7 +5,6 @@ export interface Release {
   version: string
   /** ISO date. */
   date: string
-  title: string
   changes: string[]
 }
 
@@ -13,7 +12,6 @@ export const CHANGELOG: [Release, ...Release[]] = [
   {
     version: "0.2",
     date: "2026-11-10",
-    title: "Translate anything",
     changes: [
       "A new Translate page: write or say something in English and see it in the language you're learning.",
       "Hover over or tap any word in a translation to see what it means.",
@@ -24,7 +22,6 @@ export const CHANGELOG: [Release, ...Release[]] = [
   {
     version: "0.1",
     date: "2026-11-02",
-    title: "More languages, more ways to practise",
     changes: [
       "Now in Russian, Italian and French too.",
       "Dark mode, with a light / dark switch at the top of the page.",
@@ -38,7 +35,6 @@ export const CHANGELOG: [Release, ...Release[]] = [
   {
     version: "0.0",
     date: "2026-10-31",
-    title: "First release",
     changes: [
       "Learn Spanish or German, starting with the words people actually say most.",
       "5,000 words per language, in five levels.",

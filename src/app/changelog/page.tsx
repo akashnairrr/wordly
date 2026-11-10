@@ -23,21 +23,19 @@ export default function Changelog() {
       <Typography variant="h1" sx={{ mt: 2, mb: 1 }}>
         What&apos;s new
       </Typography>
-      <Box component="p" sx={{ color: C.muted }}>
-        Everything that&apos;s changed in Wordly, newest first.
-      </Box>
       {CHANGELOG.map((r, i) => (
         <Box component="section" key={r.version} sx={{ mt: 5 }}>
           <Box sx={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", columnGap: 1.5 }}>
             <Typography variant="h2">v{r.version}</Typography>
             <Box component="span" sx={{ fontSize: 15, color: C.muted }}>
               <time dateTime={r.date}>{formatDate(r.date)}</time>
-              {i === 0 && " · current version"}
+              {i === 0 && (
+                <Box component="span" sx={{ fontWeight: "bold" }}>
+                  {" · current version"}
+                </Box>
+              )}
             </Box>
           </Box>
-          <Typography variant="h3" component="p" sx={{ mt: 0.75, mb: 1.5 }}>
-            {r.title}
-          </Typography>
           <Box component="ul" sx={{ m: 0, pl: 2.5, display: "grid", gap: 0.75, maxWidth: "62ch" }}>
             {r.changes.map((c) => (
               <li key={c}>{c}</li>

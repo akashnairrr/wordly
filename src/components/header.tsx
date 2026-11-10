@@ -53,12 +53,10 @@ export function Header({ lang }: HeaderProps) {
         <Box
           component={NextLink}
           href="/"
-          sx={{ ...displayFontSx, fontSize: 26, color: C.venice, textDecoration: "none", lineHeight: 1 }}
+          sx={{ ...displayFontSx, fontSize: 26, color: C.venice, textDecoration: "none", lineHeight: 1, mr: "auto" }}
         >
           wordly
         </Box>
-        {/* Smallest phones (320px) have no room for it beside the language picker. */}
-        <VersionChip sx={{ mr: "auto", "@media (max-width: 359.95px)": { display: "none" } }} />
         <LanguageSelect size="small" value={lang} onChange={(to) => to !== lang && setSwitchTo(to)} />
         <DarkModeToggle />
         <Drawer
@@ -69,6 +67,7 @@ export function Header({ lang }: HeaderProps) {
         >
           <Box sx={{ ...displayFontSx, fontSize: 26, color: C.venice, px: 2.5, py: 2.25 }}>wordly</Box>
           <NavLinks lang={lang} onNavigate={() => setMenuOpen(false)} />
+          <VersionChip sx={{ alignSelf: "flex-start", mt: 3, ml: 2 }} />
         </Drawer>
         {switchTo && (
           <ConfirmModal
@@ -106,6 +105,7 @@ export function SideNav({ lang }: HeaderProps) {
       }}
     >
       <NavLinks lang={lang} />
+      <VersionChip sx={{ mt: 3, ml: 2 }} />
     </Box>
   )
 }
