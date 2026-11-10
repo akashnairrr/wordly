@@ -1,9 +1,9 @@
 import Box from "@mui/material/Box"
 import type { Metadata } from "next"
-import { Header } from "@/components/header"
+import { Header, SideNav } from "@/components/header"
 import { SpeechProvider } from "@/components/speech-provider"
 import { getLanguage, LANGUAGE_LIST } from "@/lib/languages"
-import { columnSx } from "@/theme"
+import { columnSx, shellSx } from "@/theme"
 
 export const dynamicParams = false
 
@@ -21,8 +21,14 @@ export default async function LanguageLayout({ children, params }: LayoutProps<"
   return (
     <SpeechProvider lang={lang}>
       <Header lang={lang} />
-      <Box component="main" sx={{ ...columnSx, pb: "calc(48px + env(safe-area-inset-bottom))" }}>
-        {children}
+      <Box sx={{ ...shellSx, display: "flex" }}>
+        <SideNav lang={lang} />
+        <Box
+          component="main"
+          sx={{ ...columnSx, flex: 1, minWidth: 0, pb: "calc(48px + env(safe-area-inset-bottom))" }}
+        >
+          {children}
+        </Box>
       </Box>
     </SpeechProvider>
   )

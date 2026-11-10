@@ -2,6 +2,7 @@ import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import { DarkModeToggle } from "@/components/dark-mode-toggle"
 import { TextLink } from "@/components/links"
+import { VersionChip } from "@/components/version-chip"
 import { C, columnSx, displayFontSx, RADIUS } from "@/theme"
 import { LanguageStart } from "./language-start"
 
@@ -33,7 +34,8 @@ export default function LanguagePicker() {
         </Typography>
         <LanguageStart />
         <Typography variant="body2" sx={{ color: C.venice }}>
-          More languages are on the way. <TextLink href="/about/">Data sources & credits</TextLink>
+          More languages are on the way. <TextLink href="/about/">Data sources & credits</TextLink>{" "}
+          <VersionChip sx={{ ml: 0.5 }} />
         </Typography>
       </Box>
     </Box>

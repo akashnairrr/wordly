@@ -8,7 +8,7 @@ Learn the most common words of a language **in context**: meaning, native-speake
 - **Skip**: leave a word out while learning (it won't come back as new; add it back from its page). Quiz questions can't be skipped.
 - **Audio**: native recordings for most words and sentences (Lingua Libre, Wiktionary, Tatoeba); the browser's most natural voice fills the gaps.
 
-Spanish, French, German, Russian and Italian so far (Portuguese is built but hidden for now); built to add more languages. Static Next.js app with no backend. Progress lives in the browser's localStorage (export/import backup on the Progress page).
+Spanish, French, German, Russian and Italian so far (Portuguese is built but hidden for now); built to add more languages. Next.js app on Vercel; the only server code is the translator, which calls DeepL. Progress lives in the browser's localStorage (export/import backup on the Progress page).
 
 ## Run
 
@@ -16,7 +16,7 @@ Spanish, French, German, Russian and Italian so far (Portuguese is built but hid
 pnpm install
 pnpm dev          # http://localhost:3000
 pnpm test         # pipeline + quiz/session/progress logic
-pnpm build        # static export to out/
+pnpm build        # production build
 pnpm format       # Prettier
 pnpm check        # lint + format check + typecheck + tests (what CI runs)
 ```
@@ -73,13 +73,9 @@ Portuguese is European: the word list comes from Portuguese subtitles, and `regi
 
 French is France's French: `region` drops Quebec, Belgian and Swiss senses, `articleBefore` writes l'homme, and `pronounBefore` says j'aime rather than je aime.
 
-## Deploy (GitHub Pages)
+## Deploy (Vercel)
 
-`.github/workflows/deploy.yml` tests, builds and publishes the static export on every push to `main`, to `https://<user>.github.io/<repo>/`. It sets `NEXT_PUBLIC_BASE_PATH` to the repo path so links and data fetches work under that prefix.
-
-One-time setup: repo **Settings → Pages → Source: GitHub Actions** (or `gh api -X POST repos/<user>/<repo>/pages -f build_type=workflow`). Pages is free for public repos.
-
-To preview that build locally: `NEXT_PUBLIC_BASE_PATH=/wordly pnpm build`, then serve a folder containing `out/` renamed to `wordly/`.
+Vercel builds and deploys every push. The translator needs a DeepL API key (the free plan is enough): put `DEEPL_AUTH_KEY=<key>` in `.env.local` for `pnpm dev`, and add the same variable under the Vercel project's **Settings → Environment Variables** (Production and Preview). Without it the Translate page shows "not set up" and everything else works.
 
 ## Licensing
 

@@ -1,0 +1,23 @@
+# Tags main with its version (v0.2 for "version": "0.2.0" in package.json) the first time that version lands, so
+# every release in src/lib/changelog.ts has a tag. Bumping the version is the release step; this just records it.
+name: Tag release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          tag="v$(node -p 'require("./package.json").version.split(".").slice(0, 2).join(".")')"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null; then
+            echo "$tag already exists"
+          else
+            git tag "$tag" && git push origin "$tag"
+          fi

@@ -1,6 +1,6 @@
 {
   "name": "wordly",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,6 +9,7 @@
     "lint": "eslint",
     "data": "tsx scripts/build-data/index.ts",
     "test": "tsx --test \"scripts/**/*.test.ts\" \"src/**/*.test.ts\"",
+    "coverage": "tsx --test --experimental-test-coverage --test-coverage-exclude=\"**/*.test.ts\" --test-coverage-exclude=\"**/node_modules/**\" \"scripts/**/*.test.ts\" \"src/**/*.test.ts\"",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "next typegen && tsc --noEmit",
