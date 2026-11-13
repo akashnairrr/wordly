@@ -1,5 +1,5 @@
 // Learning progress, stored per language in localStorage. Pure functions here; React hook in hooks/use-progress.ts.
-import { DEFAULT_RANGE } from "./session"
+import { MIN_SIZE } from "./session"
 import { RATES } from "./speech"
 import type { Progress } from "./types"
 
@@ -8,7 +8,7 @@ const key = (lang: string) => `wordly:v1:${lang}`
 export function emptyProgress(): Progress {
   return {
     version: 1,
-    settings: { sessionSize: DEFAULT_RANGE.min, pageSize: 100, rate: RATES.normal, sound: true },
+    settings: { sessionSize: MIN_SIZE, pageSize: 100, rate: RATES.normal, sound: true },
     learned: {},
     skipped: {},
     history: [],

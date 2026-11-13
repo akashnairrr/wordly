@@ -3,7 +3,7 @@
 import Alert from "@mui/material/Alert"
 import Box from "@mui/material/Box"
 import Slider from "@mui/material/Slider"
-import { DIFFICULTY_NOTE, difficulty, type Difficulty, type SizeRange } from "@/lib/session"
+import { DIFFICULTY_NOTE, difficulty, MAX_SIZE, MIN_SIZE, type Difficulty } from "@/lib/session"
 import { C, displayFontSx, numSx } from "@/theme"
 
 const NOTICE: Record<Difficulty, object> = {
@@ -14,13 +14,11 @@ const NOTICE: Record<Difficulty, object> = {
 
 interface SessionSizePickerProps {
   value: number
-  /** From a third of the current unit to all of it (5–15 outside a course). */
-  range: SizeRange
   onChange: (n: number) => void
 }
 
-export function SessionSizePicker({ value, range, onChange }: SessionSizePickerProps) {
-  const level = difficulty(value, range)
+export function SessionSizePicker({ value, onChange }: SessionSizePickerProps) {
+  const level = difficulty(value)
   return (
     <div>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 1.5 }}>
@@ -33,12 +31,12 @@ export function SessionSizePicker({ value, range, onChange }: SessionSizePickerP
       </Box>
       <Slider
         aria-labelledby="session-size"
-        min={range.min}
-        max={range.max}
+        min={MIN_SIZE}
+        max={MAX_SIZE}
         step={1}
         value={value}
         onChange={(_, n) => onChange(n as number)}
-        getAriaValueText={(n) => `${n} words, ${difficulty(n, range)}`}
+        getAriaValueText={(n) => `${n} words, ${difficulty(n)}`}
         sx={{ mt: 1, mb: 0.25 }}
       />
 

@@ -6,11 +6,7 @@ import { pool } from "./test-fixtures"
 
 describe("session", () => {
   it("difficulty bands and next unlearned words by rank", () => {
-    // 5–15: Moderate from 8⅓, Hard from 11⅔.
-    assert.deepEqual(
-      [5, 8, 9, 11, 12, 15].map((n) => difficulty(n)),
-      ["Easy", "Easy", "Moderate", "Moderate", "Hard", "Hard"]
-    )
+    assert.deepEqual([5, 8, 9, 12, 13, 15].map(difficulty), ["Easy", "Easy", "Moderate", "Moderate", "Hard", "Hard"])
     const p = { ...emptyProgress(), learned: { tener: { learnedAt: "", correct: 1, wrong: 0 } } }
     assert.deepEqual(
       pickNewWords(pool, p, 5).map((w) => w.id),
