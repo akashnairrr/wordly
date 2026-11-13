@@ -13,7 +13,10 @@ export interface Sources {
 
 /** How many lemmas to keep, by spoken frequency. */
 export const TOP_N = 5000
-export const MAX_EXAMPLES = 5
+/** Example sentences shown per word. */
+export const MAX_EXAMPLES = 3
+/** Best-scored sentences per word handed to scripts/vet-examples.ts to choose from. */
+export const CANDIDATES = 15
 
 /** Tatoeba's list of sentences with human recordings (all languages). */
 export const SENTENCE_AUDIO = "https://downloads.tatoeba.org/exports/sentences_with_audio.tar.bz2"

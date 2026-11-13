@@ -5,3 +5,4 @@ out/
 data-raw/
 next-env.d.ts
 pnpm-lock.yaml
+scripts/build-data/vetted/

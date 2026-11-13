@@ -99,7 +99,7 @@ describe("buildQuiz / grade", () => {
   })
 
   it("one-letter words never get listening questions", () => {
-    const y: Word = { id: "y", lemma: "y", pos: "conj", rank: 8, glosses: ["and"], examples: [] }
+    const y: Word = { id: "y", lemma: "y", pos: "conj", rank: 8, order: 8, glosses: ["and"], examples: [] }
     for (let seed = 1; seed < 50; seed++) {
       const qs = buildQuiz([y], pool, es, { speech: true, rng: seeded(seed) })
       assert.equal(qs.length, 2)
@@ -146,6 +146,7 @@ describe("buildQuiz / grade", () => {
       lemma: `w${rank}`,
       pos: "pron",
       rank,
+      order: rank,
       gloss,
     })
     const big = [

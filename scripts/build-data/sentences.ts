@@ -146,14 +146,26 @@ export function indexSentences(pairs: Example[], everyday: Everyday = NO_EVERYDA
   return { pairs, stats, byToken }
 }
 
-/** Lower is better: short, basic-word, literally translated sentences with a native recording win. */
-function everydayScore(s: SentenceStats, form: string, audio: boolean, ambiguous: boolean, pronoun: boolean): number {
+/**
+ * Lower is better: short, basic-word, literally translated sentences with a native recording win, built from words the
+ * course teaches before this one (comprehensible input: one new word per sentence).
+ */
+function everydayScore(
+  s: SentenceStats,
+  form: string,
+  audio: boolean,
+  ambiguous: boolean,
+  pronoun: boolean,
+  later: (token: string) => boolean
+): number {
   const n = s.tokens.length
   const rare = s.rare.filter((t) => t !== form).length
   const uncommon = s.uncommon.filter((t) => t !== form).length
+  const notYetTaught = s.tokens.filter((t) => t !== form && later(t)).length
   return (
     rare * 6 +
     uncommon * 2 +
+    notYetTaught * LATER_PENALTY +
     s.names * 12 +
     (s.digits ? 6 : 0) +
     // Three to six words is easy to read, say and remember.
@@ -170,6 +182,8 @@ function everydayScore(s: SentenceStats, form: string, audio: boolean, ambiguous
 }
 
 const FORMS_CONSIDERED = 8
+// Per word the learner hasn't met yet: between "uncommon" and "rare".
+const LATER_PENALTY = 3
 const SAME_FORM_PENALTY = 4
 const REPEAT_PENALTY = 10
 // Conversation mixes questions with statements: beyond this many questions, prefer other sentences.
@@ -180,14 +194,15 @@ const QUESTION_PENALTY = 6
  * Picks up to `max` everyday sentences containing the word. `forms` should be most-spoken first: only the most
  * frequent few are considered, and repeated use of one form is penalised so a verb shows several conjugations.
  * `ambiguous` holds forms shared with other words, whose matches are deprioritised; `pronoun` is set when the word
- * taught is itself a subject pronoun.
+ * taught is itself a subject pronoun. `later` tells which tokens belong to words taught after this one.
  */
 export function findExamples(
   index: SentenceIndex,
   forms: string[],
   max: number,
   ambiguous: Set<string> = new Set(),
-  pronoun = false
+  pronoun = false,
+  later: (token: string) => boolean = () => false
 ): Example[] {
   // Sentence indices below all come from byToken, so they're always in range.
   const stats = (i: number) => index.stats[i]!
@@ -196,7 +211,7 @@ export function findExamples(
   ;[...new Set(forms.map((f) => f.toLowerCase()))].slice(0, FORMS_CONSIDERED).forEach((form, rank) => {
     for (const i of index.byToken.get(form) ?? []) {
       // Rarer forms rank slightly lower so the commonest ones get the best sentences.
-      const score = everydayScore(stats(i), form, !!pair(i).audio, ambiguous.has(form), pronoun) + rank
+      const score = everydayScore(stats(i), form, !!pair(i).audio, ambiguous.has(form), pronoun, later) + rank
       if (score < (best.get(i)?.score ?? Infinity)) best.set(i, { score, form })
     }
   })
