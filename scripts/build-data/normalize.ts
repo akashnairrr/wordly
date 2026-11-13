@@ -341,12 +341,18 @@ export function toWord(
   rank: number,
   glossOverride?: string[],
   opts: ToWordOptions = {}
-): Omit<Word, "examples"> | undefined {
+): Omit<Word, "examples" | "order" | "unit"> | undefined {
   const pos = mapPos(e.pos)
   const [first, ...rest] = glossOverride ?? glosses(e)
   // Single letters as nouns are letter names ("S", from geht's), never vocabulary.
   if (!pos || !first || (pos === "noun" && e.word.length === 1)) return
-  const w: Omit<Word, "examples"> = { id: wordId(e.word), lemma: e.word, pos, rank, glosses: [first, ...rest] }
+  const w: Omit<Word, "examples" | "order" | "unit"> = {
+    id: wordId(e.word),
+    lemma: e.word,
+    pos,
+    rank,
+    glosses: [first, ...rest],
+  }
   const i = ipa(e)
   if (i) w.ipa = i
   const audio = e.sounds?.find((s) => s.mp3_url)?.mp3_url

@@ -35,7 +35,7 @@ export function strength(id: string, p: Progress): number {
   return Math.min(4, Math.max(1, 1 + l.correct - l.wrong))
 }
 
-/** The next most frequent words never studied or skipped. */
+/** The next words in teaching order (course units, then frequency) never studied or skipped. */
 export function pickNewWords(
   index: IndexEntry[],
   progress: Progress,
@@ -44,7 +44,7 @@ export function pickNewWords(
 ): IndexEntry[] {
   return index
     .filter((w) => !progress.learned[w.id] && !progress.skipped[w.id] && !exclude.has(w.id))
-    .sort((a, b) => a.rank - b.rank)
+    .sort((a, b) => a.order - b.order)
     .slice(0, clampSize(size))
 }
 

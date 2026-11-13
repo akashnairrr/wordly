@@ -11,8 +11,8 @@ import { ButtonLink, TextLink } from "@/components/links"
 import { SessionSizePicker } from "@/components/session-size-picker"
 import { StatLine } from "@/components/stat-line"
 import { getLanguage } from "@/lib/languages"
-import { currentLevel, levelLabel, levelProgress } from "@/lib/levels"
 import { planLesson, reviewQueue } from "@/lib/session"
+import { currentStage, stageDone } from "@/lib/units"
 import { wordHref } from "@/lib/words"
 import { useIndex } from "@/hooks/use-index"
 import { useProgress } from "@/hooks/use-progress"
@@ -43,10 +43,10 @@ export function HomeView({ lang }: HomeViewProps) {
   const { fresh, review } = planLesson(index, progress, size)
   const studied = reviewQueue(index, progress)
   const weak = reviewQueue(index, progress, true)
-  const level = currentLevel(index, progress)
-  const levelDone = levelProgress(index, progress, level)
-  // First lesson of a level after the first: say so, like moving up a grade.
-  const newLevel = level.n > 1 && levelDone.done === 0
+  const stage = currentStage(index, progress)
+  const stageWords = { done: stageDone(stage, progress), total: stage.words.length }
+  // First lesson of a unit (or level) after the first: say so, like moving up a grade.
+  const newStage = learned.length > 0 && stageWords.done === 0
   const heroTitle = { fontSize: "clamp(34px, 7vw, 54px)", fontWeight: 800, maxWidth: "14ch" } as const
 
   return (
@@ -77,22 +77,22 @@ export function HomeView({ lang }: HomeViewProps) {
           <Box sx={{ minWidth: 200, flex: "0 1 260px" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, fontSize: 14 }}>
               <Box component="span" sx={{ fontWeight: 600 }}>
-                {levelLabel(level)}
+                {stage.label}
               </Box>
               <Box component="span" sx={{ ...numSx, color: C.muted }}>
-                {levelDone.done} studied
+                {stageWords.done}/{stageWords.total}
               </Box>
             </Box>
             <LinearProgress
-              value={(levelDone.done / Math.max(1, levelDone.total)) * 100}
-              aria-label={`${levelLabel(level)} progress`}
+              value={(stageWords.done / Math.max(1, stageWords.total)) * 100}
+              aria-label={`${stage.label} progress`}
               sx={{ mt: 0.75, bgcolor: C.surface }}
             />
           </Box>
         </Box>
-        {newLevel && (
+        {newStage && (
           <Box component="p" role="status" sx={{ m: "4px 0 12px", fontWeight: 600 }}>
-            New level: {level.name}. The words get more specific from here.
+            Up next: {stage.label}.
           </Box>
         )}
         {fresh.length ? (

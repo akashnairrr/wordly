@@ -4,7 +4,14 @@ import { currentLevel, levelOf, levelProgress, LEVELS } from "./levels"
 import { emptyProgress } from "./progress"
 import type { IndexEntry } from "./types"
 
-const entry = (rank: number): IndexEntry => ({ id: `w${rank}`, lemma: `w${rank}`, pos: "noun", rank, gloss: "" })
+const entry = (rank: number): IndexEntry => ({
+  id: `w${rank}`,
+  lemma: `w${rank}`,
+  pos: "noun",
+  rank,
+  order: rank,
+  gloss: "",
+})
 
 describe("levels", () => {
   it("bands cover ranks 1–5,000 without gaps", () => {

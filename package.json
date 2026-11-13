@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "data": "tsx scripts/build-data/index.ts",
+    "vet": "tsx scripts/vet-examples.ts",
     "test": "tsx --test \"scripts/**/*.test.ts\" \"src/**/*.test.ts\"",
     "coverage": "tsx --test --experimental-test-coverage --test-coverage-exclude=\"**/*.test.ts\" --test-coverage-exclude=\"**/node_modules/**\" \"scripts/**/*.test.ts\" \"src/**/*.test.ts\"",
     "format": "prettier --write .",
@@ -26,6 +27,7 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

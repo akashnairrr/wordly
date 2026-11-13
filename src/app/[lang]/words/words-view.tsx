@@ -40,7 +40,7 @@ const POS_FILTERS: Pos[] = ["noun", "verb", "adj", "adv", "pron", "prep", "conj"
 
 type Sort = "rank" | "weak" | "recent"
 const SORTS: { id: Sort; label: string }[] = [
-  { id: "rank", label: "Most common" },
+  { id: "rank", label: "Course order" },
   { id: "weak", label: "Weakest first" },
   { id: "recent", label: "Recently studied" },
 ]
@@ -145,15 +145,15 @@ export function WordsView({ lang }: WordsViewProps) {
   const list = index.filter(
     (w) =>
       (status === "all" || statuses.get(w.id) === status) &&
-      (level === "all" || String(levelOf(w.rank).n) === level) &&
+      (level === "all" || String(levelOf(w.order).n) === level) &&
       (pos === "all" || w.pos === pos) &&
       (!q || fold(w.lemma).includes(q) || fold(w.gloss).includes(q))
   )
   // Words not studied have strength 0 and no date: "weakest" puts them after the studied ones, like "recent".
   if (sort === "weak")
-    list.sort((a, b) => (strength(a.id, progress) || 9) - (strength(b.id, progress) || 9) || a.rank - b.rank)
+    list.sort((a, b) => (strength(a.id, progress) || 9) - (strength(b.id, progress) || 9) || a.order - b.order)
   if (sort === "recent")
-    list.sort((a, b) => seenAt(b.id, progress).localeCompare(seenAt(a.id, progress)) || a.rank - b.rank)
+    list.sort((a, b) => seenAt(b.id, progress).localeCompare(seenAt(a.id, progress)) || a.order - b.order)
 
   // A size from an old or hand-edited backup falls back to the largest.
   const size = PAGE_SIZES.includes(progress.settings.pageSize) ? progress.settings.pageSize : 100
@@ -387,7 +387,7 @@ export function WordsView({ lang }: WordsViewProps) {
                   component="span"
                   sx={{ ...numSx, width: "4ch", textAlign: "right", color: C.muted, fontSize: 13, flexShrink: 0 }}
                 >
-                  {w.rank}
+                  {w.order}
                 </Box>
                 {available && (
                   <IconButton

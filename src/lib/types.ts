@@ -47,7 +47,12 @@ export interface Word {
   id: string
   lemma: string
   pos: Pos
+  /** Spoken-frequency rank among lemmas (1 = most common). */
   rank: number
+  /** Teaching position: curriculum words first (unit by unit), then the rest by frequency. 1-based, contiguous. */
+  order: number
+  /** Course unit (src/lib/units.ts), for words in the curriculum. */
+  unit?: number
   /** Never empty: entries without a meaning are dropped by the data pipeline. */
   glosses: [string, ...string[]]
   ipa?: string
@@ -73,6 +78,8 @@ export interface IndexEntry {
   lemma: string
   pos: Pos
   rank: number
+  order: number
+  unit?: number
   gloss: string
 }
 
@@ -84,6 +91,8 @@ export interface Settings {
   rate: number
   /** Quiz sound effects. */
   sound: boolean
+  /** Example sentences show every word's meaning as a pill, instead of on hover or tap. */
+  showMeanings?: boolean
 }
 
 export interface WordProgress {

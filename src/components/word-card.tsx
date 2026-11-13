@@ -6,6 +6,7 @@ import Typography from "@mui/material/Typography"
 import { useEffect } from "react"
 import { articlePrefix, getLanguage, POS_LABELS } from "@/lib/languages"
 import { levelLabel, levelOf } from "@/lib/levels"
+import { unitLabel, unitOf } from "@/lib/units"
 import type { Word } from "@/lib/types"
 import { C, numSx } from "@/theme"
 import { ConjugationTable } from "./conjugation-table"
@@ -94,7 +95,7 @@ export function WordCard({ word, lang, autoSpeak = false, badge }: WordCardProps
                 )}
               </span>
             )}
-            <span>· {levelLabel(levelOf(word.rank))}</span>
+            <span>· {word.unit ? unitLabel(unitOf(word.unit)) : levelLabel(levelOf(word.order))}</span>
             <Box component="span" sx={numSx}>
               · #{word.rank}
             </Box>
@@ -137,7 +138,7 @@ export function WordCard({ word, lang, autoSpeak = false, badge }: WordCardProps
       )}
 
       <Section title="In real sentences">
-        <ExampleList word={word} lang={lang} />
+        <ExampleList key={word.id} word={word} lang={lang} />
       </Section>
       {available === false && (
         <Typography variant="body2" sx={{ mt: 2 }}>

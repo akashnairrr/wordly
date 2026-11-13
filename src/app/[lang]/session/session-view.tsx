@@ -22,12 +22,12 @@ import { ToneChip } from "@/components/tone-chip"
 import { WordCard } from "@/components/word-card"
 import { fetchWord } from "@/lib/data"
 import { getLanguage } from "@/lib/languages"
-import { currentLevel, type Level, levelLabel, levelProgress } from "@/lib/levels"
 import { recordSession, skipWord } from "@/lib/progress"
 import { buildQuiz, type QuizQuestion, type QuizResult, type QuizSummary, summarize } from "@/lib/quiz"
 import { playSfx } from "@/lib/sfx"
 import { pickNewWords, planLesson, reviewQueue } from "@/lib/session"
 import type { Word } from "@/lib/types"
+import { currentStage, type Stage, stageDone } from "@/lib/units"
 import { wordHref } from "@/lib/words"
 import { useIndex } from "@/hooks/use-index"
 import { useProgress } from "@/hooks/use-progress"
@@ -68,8 +68,8 @@ interface Outcome {
   summary: QuizSummary
   streak: number
   streakUp: boolean
-  level: Level
-  /** Level words studied before and after this session, out of `total`. */
+  stage: Stage
+  /** Unit (or level) words studied before and after this session, out of `total`. */
   before: number
   after: number
   total: number
@@ -98,7 +98,7 @@ function CountUp({ to }: { to: number }) {
   return <>{n}</>
 }
 
-/** Level bar that starts at `from` and fills to `to`. */
+/** Unit (or level) bar that starts at `from` and fills to `to`. */
 function LevelFill({ from, to, total }: { from: number; to: number; total: number }) {
   const [value, setValue] = useState(from)
   useEffect(() => {
@@ -108,7 +108,7 @@ function LevelFill({ from, to, total }: { from: number; to: number; total: numbe
   return (
     <LinearProgress
       value={(value / total) * 100}
-      aria-label="Level progress"
+      aria-label="Unit progress"
       sx={{ height: 10, "& .MuiLinearProgress-bar": { transitionDuration: "1s" } }}
     />
   )
@@ -311,8 +311,7 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
     const now = new Date()
     const record = (p: typeof progress) => recordSession(p, summary.progress, mode, now, summary.xp)
     const after = record(progress)
-    const level = currentLevel(index, progress)
-    const { done: before, total } = levelProgress(index, progress, level)
+    const stage = currentStage(index, progress)
     update(record)
     if (sound) playSfx("done")
     setPhase({
@@ -321,10 +320,10 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
         summary,
         streak: after.streak,
         streakUp: after.streak > progress.streak,
-        level,
-        before,
-        after: levelProgress(index, after, level).done,
-        total,
+        stage,
+        before: stageDone(stage, progress),
+        after: stageDone(stage, after),
+        total: stage.words.length,
       },
     })
   }
@@ -359,7 +358,7 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
     )
   }
 
-  const { summary, streak, streakUp, level, before, after, total } = phase.outcome
+  const { summary, streak, streakUp, stage, before, after, total } = phase.outcome
   const missed = items.filter((i) => summary.missed.includes(i.word.id))
   const perfect = summary.score === summary.total
   return (
@@ -421,7 +420,7 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
         <Box sx={{ mt: 2.5 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1, fontSize: 14 }}>
             <Box component="span" sx={{ fontWeight: 600 }}>
-              {levelLabel(level)}
+              {stage.label}
             </Box>
             <Box component="span" sx={{ ...numSx, color: C.muted }}>
               {after} / {total}

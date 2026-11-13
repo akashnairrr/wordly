@@ -17,5 +17,11 @@ function getJson<T>(path: string): Promise<T> {
   return p as Promise<T>
 }
 
-export const fetchIndex = (lang: string) => getJson<IndexEntry[]>(`${lang}/index.json`)
-export const fetchWord = (lang: string, id: string) => getJson<Word>(`${lang}/words/${encodeURIComponent(id)}.json`)
+// Data built before course units has no teaching order: teach it by frequency, as it was.
+// ponytail: drop once every language is rebuilt with a curriculum.
+const withOrder = <T extends { rank: number; order?: number }>(w: T): T => ({ ...w, order: w.order ?? w.rank })
+
+export const fetchIndex = (lang: string) =>
+  getJson<IndexEntry[]>(`${lang}/index.json`).then((index) => index.map(withOrder))
+export const fetchWord = (lang: string, id: string) =>
+  getJson<Word>(`${lang}/words/${encodeURIComponent(id)}.json`).then(withOrder)

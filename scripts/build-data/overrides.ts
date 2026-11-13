@@ -733,6 +733,7 @@ export const OVERRIDES: Record<string, Record<string, Override>> = {
     las: { pos: "det", glosses: ["the (feminine plural)"] },
     una: { pos: "det", glosses: ["a, an (feminine)", "one (feminine)"] },
     mi: { pos: "det", glosses: ["my"] },
+    muy: { pos: "adv", glosses: ["very"] },
     tu: { pos: "det", glosses: ["your (informal)"] },
     su: { pos: "det", glosses: ["his, her, its, their", "your (formal)"] },
     mis: { pos: "det", glosses: ["my (plural)"] },

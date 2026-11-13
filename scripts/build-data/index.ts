@@ -5,15 +5,18 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { parseArgs } from "node:util"
 import { LANGUAGES } from "../../src/lib/languages"
-import type { IndexEntry, TokenGloss, Word } from "../../src/lib/types"
-import { allForms } from "../../src/lib/words"
+import type { Example, IndexEntry, TokenGloss, Word } from "../../src/lib/types"
+import { UNITS } from "../../src/lib/units"
+import { allForms, tokenize } from "../../src/lib/words"
 import { download } from "./download"
 import { glossExample, phraseCandidates, shortGloss, translatingGloss } from "./glosses"
+import { CURRICULA } from "./curriculum"
 import { bestEntry, mapPos, resolveIdClashes, toWord, usableGlosses } from "./normalize"
 import { OVERRIDES, SHORT_GLOSSES } from "./overrides"
 import { loadSentenceRecordings, loadWordRecordings } from "./recordings"
 import { findExamples, loadSentences, mostlyCapitalised, readTargetSentences } from "./sentences"
-import { MAX_EXAMPLES, SOURCES, TOP_N } from "./sources"
+import { CANDIDATES, MAX_EXAMPLES, SOURCES, TOP_N } from "./sources"
+import { applyVetted, loadVetted } from "./vetted"
 import { formOfTargets, isLemmaEntry, streamEntries, type RawEntry } from "./wiktionary"
 
 const ROOT = join(import.meta.dirname, "../..")
@@ -141,18 +144,45 @@ async function main() {
   const language = LANGUAGES[lang]
   const toWordOptions = { stressMarks: language?.formsMarkStress, perfect: language?.compoundPerfect }
 
-  // Walk spoken frequency order; each surface form counts towards its lemma.
-  const picked: Omit<Word, "examples">[] = []
+  // Course units: lemma → [unit, position in the course].
+  const units = CURRICULA[lang] ?? []
+  if (units.length > UNITS.length)
+    throw new Error(`${lang} curriculum has ${units.length} units, UNITS has ${UNITS.length}`)
+  const course = new Map(
+    units.flatMap((u, i) => u.map((l) => [key(l), i + 1] as const)).map(([l, u], k) => [l, { unit: u, at: k }])
+  )
+
+  // Walk spoken frequency order; each surface form counts towards its lemma. Past TOP_N, keep walking only for course
+  // words the subtitles rarely use (pasaporte), so every course word is taught.
+  const picked: Omit<Word, "examples" | "order" | "unit">[] = []
   const seen = new Set<string>()
+  let ranked = 0
+  let courseLeft = course.size
   for (const form of freq) {
-    if (picked.length >= TOP_N) break
+    if (picked.length >= TOP_N && !courseLeft) break
     const lemma = resolve(form)
     if (!lemma || seen.has(lemma)) continue
     seen.add(lemma)
+    if (course.has(lemma)) courseLeft--
+    else if (picked.length >= TOP_N) continue
     const { entry, glosses } = entryFor(lemma)
-    const w = entry && toWord(entry, picked.length + 1, glosses, toWordOptions)
+    const w = entry && toWord(entry, ++ranked, glosses, toWordOptions)
     if (w) picked.push(w)
   }
+  // Course words found past TOP_N push out the least frequent other words.
+  const inCourse = (w: { lemma: string }) => course.has(key(w.lemma))
+  for (let i = picked.length - 1; picked.length > TOP_N && i >= 0; i--) if (!inCourse(picked[i]!)) picked.splice(i, 1)
+  const missingCourse = [...course.keys()].filter((l) => !picked.some((w) => key(w.lemma) === l))
+  if (missingCourse.length) console.warn(`Course words not found as lemmas: ${missingCourse.join(", ")}`)
+  // Teaching order: the course, then everything else by frequency.
+  const orderOf = new Map(
+    [...picked]
+      .sort(
+        (a, b) =>
+          (course.get(key(a.lemma))?.at ?? Infinity) - (course.get(key(b.lemma))?.at ?? Infinity) || a.rank - b.rank
+      )
+      .map((w, i) => [w.lemma, i + 1])
+  )
 
   console.log("Loading human recordings…")
   const wordAudio = await loadWordRecordings(sources.lingualibre, files.wordAudioIndex)
@@ -161,6 +191,7 @@ async function main() {
   // Short meaning of any word: shown under example sentences, and used to prefer literal translations.
   const pickedLemmas = new Set(picked.map((w) => key(w.lemma)))
   const curated = SHORT_GLOSSES[lang] ?? {}
+  const vetted = loadVetted(ROOT, lang)
   // Like resolve(), but a spelling that's also a form of a top word means that word (dije → decir, not "locket").
   // Inflected forms listed in the chosen words' own tables (хочу → хотеть). Russian Wiktionary rarely has a separate
   // "form of" entry for them, so this is the fallback when nothing else resolves a sentence word.
@@ -182,6 +213,8 @@ async function main() {
       if (lemma) {
         const { entry, glosses } = entryFor(lemma)
         if (entry) shown = entry.word
+        // Meanings Claude cleaned up (scripts/vet-examples.ts) beat Wiktionary's first sense.
+        if (!g && entry) g = own(vetted, entry.word)?.meanings[0]
         if (!g) {
           const all = glosses ?? (entry ? usableGlosses(entry) : [])
           const best = translatingGloss(all) ?? all[0]
@@ -213,6 +246,14 @@ async function main() {
   const byFrequency = (forms: string[]) =>
     [...forms].sort((a, b) => (rank.get(a.toLowerCase()) ?? Infinity) - (rank.get(b.toLowerCase()) ?? Infinity))
 
+  // Sentence words the course teaches later than the word being illustrated (memoised: called per token per sentence).
+  const orderByKey = new Map(picked.map((w) => [key(w.lemma), orderOf.get(w.lemma)!]))
+  const taughtAtMemo = new Map<string, number>()
+  const taughtAt = (t: string) => {
+    if (!taughtAtMemo.has(t)) taughtAtMemo.set(t, orderByKey.get(glossLemma(t) ?? "") ?? Infinity)
+    return taughtAtMemo.get(t)!
+  }
+
   const withExamples: Word[] = picked.map((w) => {
     // Wiktionary's own recording (curated) first, then Lingua Libre.
     const audio = w.audio ?? wordAudio.get(w.lemma.toLowerCase())
@@ -220,26 +261,36 @@ async function main() {
     const formAudio = Object.fromEntries(
       forms.flatMap((f) => (wordAudio.has(f.toLowerCase()) ? [[f, wordAudio.get(f.toLowerCase())!]] : []))
     )
+    const unit = course.get(key(w.lemma))?.unit
+    const order = orderOf.get(w.lemma)!
+    const meanings = own(vetted, w.lemma)?.meanings
     return {
       ...w,
+      ...(meanings?.length && { glosses: meanings as [string, ...string[]] }),
+      order,
+      ...(unit && { unit }),
       ...(audio && { audio }),
       ...(Object.keys(formAudio).length && { formAudio }),
       examples: findExamples(
         sentences,
         byFrequency(allForms(w)),
-        MAX_EXAMPLES,
+        CANDIDATES,
         new Set(
           allForms(w)
             .filter((f) => f !== w.lemma && (owners.get(f.toLowerCase()) ?? 0) > 1)
             .map((f) => f.toLowerCase())
         ),
-        droppedPronouns.has(w.lemma)
+        droppedPronouns.has(w.lemma),
+        (t) => taughtAt(t) > order
       ),
     }
   })
 
   // Pass 3: multi-word phrases that occur in the chosen sentences (por favor, de acuerdo, lo siento…).
-  const ngrams = phraseCandidates(withExamples.flatMap((w) => w.examples.map((e) => e.text)))
+  const ngrams = phraseCandidates([
+    ...withExamples.flatMap((w) => w.examples.map((e) => e.text)),
+    ...Object.values(vetted).flatMap((v) => v.examples.map((e) => e.text)),
+  ])
   const top30 = new Set(freq.slice(0, 30))
   // Set phrases are usually interjections or adverbs (de verdad: "really", not the adjective "real").
   const PHRASE_POS = ["intj", "adv", "phrase"]
@@ -270,22 +321,53 @@ async function main() {
     phrases.set(key, gloss)
   }
 
-  // Word-by-word meanings for every example sentence.
+  // Word-by-word meanings for every candidate sentence; vetted words take Claude's picks, the rest the best-scored.
+  const candidates: { word: Word; examples: Example[] }[] = []
   const words: Word[] = resolveIdClashes(withExamples).map((w) => {
-    const own = new Set(allForms(w).map((f) => f.toLowerCase()))
-    return { ...w, examples: w.examples.map((e) => glossExample(e, (t) => own.has(t), lookup, phrases)) }
+    const forms = new Set(allForms(w).map((f) => f.toLowerCase()))
+    const isTarget = (t: string) => forms.has(t)
+    const gloss = (e: Example, drop = new Set<string>()) =>
+      glossExample(e, isTarget, lookup, drop.size ? new Map([...phrases].filter(([k]) => !drop.has(k))) : phrases)
+    const glossed = w.examples.map((e) => gloss(e))
+    candidates.push({ word: w, examples: glossed })
+    const v = own(vetted, w.lemma)
+    const examples = v
+      ? v.examples.map((e) => applyVetted(e, w.examples, gloss, isTarget))
+      : glossed.slice(0, MAX_EXAMPLES)
+    for (const e of examples)
+      if (!tokenize(e.text).some(isTarget)) console.warn(`${w.lemma}: example lacks the word: ${e.text}`)
+    return { ...w, examples }
   })
+  // Input for scripts/vet-examples.ts. Wiktionary meanings, so a re-vet doesn't see its own output.
+  writeFileSync(
+    join(ROOT, "data-raw", lang, "candidates.json"),
+    JSON.stringify(
+      candidates.map(({ word, examples }) => ({
+        lemma: word.lemma,
+        pos: word.pos,
+        glosses: picked.find((p) => p.lemma === word.lemma)!.glosses,
+        order: word.order,
+        unit: word.unit,
+        examples,
+      }))
+    )
+  )
 
   const out = join(ROOT, "public/data", lang)
   rmSync(out, { recursive: true, force: true })
   mkdirSync(join(out, "words"), { recursive: true })
-  const index: IndexEntry[] = words.map((w) => ({
-    id: w.id,
-    lemma: w.lemma,
-    pos: w.pos,
-    rank: w.rank,
-    gloss: w.glosses[0],
-  }))
+  // In teaching order, which is how the word list shows them.
+  const index: IndexEntry[] = [...words]
+    .sort((a, b) => a.order - b.order)
+    .map((w) => ({
+      id: w.id,
+      lemma: w.lemma,
+      pos: w.pos,
+      rank: w.rank,
+      order: w.order,
+      ...(w.unit && { unit: w.unit }),
+      gloss: w.glosses[0],
+    }))
   writeFileSync(join(out, "index.json"), JSON.stringify(index))
   for (const w of words) writeFileSync(join(out, "words", `${w.id}.json`), JSON.stringify(w))
 
@@ -293,6 +375,7 @@ async function main() {
   console.log(`Wrote ${words.length} words to ${out}`)
   console.log(Object.fromEntries(Object.entries(byPos).map(([k, v]) => [k, v!.length])))
   console.log(`Without examples: ${words.filter((w) => !w.examples.length).length}`)
+  console.log(`Course: ${words.filter((w) => w.unit).length} words in ${units.length} units`)
   const examples = words.flatMap((w) => w.examples)
   const tokens = examples.flatMap((e) => e.words ?? [])
   console.log(
