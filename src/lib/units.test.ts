@@ -3,7 +3,7 @@ import { describe, it } from "node:test"
 import { emptyProgress } from "./progress"
 import { pickNewWords } from "./session"
 import type { IndexEntry } from "./types"
-import { currentStage, stageDone } from "./units"
+import { courseUnits, currentStage, stageDone } from "./units"
 
 const entry = (id: string, rank: number, order: number, unit?: number): IndexEntry => ({
   id,
@@ -32,5 +32,16 @@ describe("units", () => {
     assert.equal(stageDone(currentStage(index, p), p), 1)
     p.skipped["adiós"] = "2026-11-13"
     assert.equal(currentStage(index, p).label, "Level 1 · Beginner")
+  })
+})
+
+describe("course units", () => {
+  it("summarises each unit; none for languages without a course", () => {
+    const p = emptyProgress()
+    p.learned.hola = { learnedAt: "", correct: 1, wrong: 0 }
+    const [first] = courseUnits(index, p)
+    assert.equal(first?.unit.title, "Hello & goodbye")
+    assert.deepEqual([first?.words.map((w) => w.id), first?.done], [["hola", "adiós"], 1])
+    assert.deepEqual(courseUnits([entry("de", 1, 1)], p), [])
   })
 })

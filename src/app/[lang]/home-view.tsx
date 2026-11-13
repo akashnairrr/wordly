@@ -1,19 +1,17 @@
 "use client"
 
 import Box from "@mui/material/Box"
-import Chip from "@mui/material/Chip"
 import LinearProgress from "@mui/material/LinearProgress"
 import Paper from "@mui/material/Paper"
 import Skeleton from "@mui/material/Skeleton"
 import Typography from "@mui/material/Typography"
-import NextLink from "next/link"
+import { CoursePath, WordChip } from "@/components/course-path"
 import { ButtonLink, TextLink } from "@/components/links"
 import { SessionSizePicker } from "@/components/session-size-picker"
 import { StatLine } from "@/components/stat-line"
 import { getLanguage } from "@/lib/languages"
 import { planLesson, reviewQueue } from "@/lib/session"
-import { currentStage, stageDone } from "@/lib/units"
-import { wordHref } from "@/lib/words"
+import { courseUnits, currentStage, lessonsOf, stageDone } from "@/lib/units"
 import { useIndex } from "@/hooks/use-index"
 import { useProgress } from "@/hooks/use-progress"
 import { C, displayFontSx, numSx, RADIUS } from "@/theme"
@@ -45,8 +43,12 @@ export function HomeView({ lang }: HomeViewProps) {
   const weak = reviewQueue(index, progress, true)
   const stage = currentStage(index, progress)
   const stageWords = { done: stageDone(stage, progress), total: stage.words.length }
-  // First lesson of a unit (or level) after the first: say so, like moving up a grade.
-  const newStage = learned.length > 0 && stageWords.done === 0
+  // Lessons take `size` words at a time, so a unit is a handful of lessons.
+  const { lesson, lessons } = lessonsOf(stageWords.total, stageWords.done, size)
+  const units = courseUnits(index, progress)
+  const unitsDone = units.filter((u) => u.done === u.words.length).length
+  // Languages with a themed course show units and lessons; the rest still count words by frequency level.
+  const course = units.length > 0
   const heroTitle = { fontSize: "clamp(34px, 7vw, 54px)", fontWeight: 800, maxWidth: "14ch" } as const
 
   return (
@@ -77,35 +79,45 @@ export function HomeView({ lang }: HomeViewProps) {
           <Box sx={{ minWidth: 200, flex: "0 1 260px" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, fontSize: 14 }}>
               <Box component="span" sx={{ fontWeight: 600 }}>
-                {stage.label}
+                {course ? `Lesson ${lesson} of ${lessons}` : stage.label}
               </Box>
-              <Box component="span" sx={{ ...numSx, color: C.muted }}>
-                {stageWords.done}/{stageWords.total}
-              </Box>
+              {!course && (
+                <Box component="span" sx={{ ...numSx, color: C.muted }}>
+                  {stageWords.done} studied
+                </Box>
+              )}
             </Box>
             <LinearProgress
-              value={(stageWords.done / Math.max(1, stageWords.total)) * 100}
+              value={course ? ((lesson - 1) / lessons) * 100 : (stageWords.done / Math.max(1, stageWords.total)) * 100}
               aria-label={`${stage.label} progress`}
               sx={{ mt: 0.75, bgcolor: C.surface }}
             />
           </Box>
         </Box>
-        {newStage && (
-          <Box component="p" role="status" sx={{ m: "4px 0 12px", fontWeight: 600 }}>
-            Up next: {stage.label}.
-          </Box>
-        )}
         {fresh.length ? (
           <>
-            <Typography variant="h1" sx={heroTitle}>
-              {fresh.length} new {language.name} words are waiting.
-            </Typography>
+            {course ? (
+              <>
+                <Box component="p" sx={{ m: "8px 0 4px", fontWeight: 700, color: C.venice }}>
+                  {stage.kicker}
+                </Box>
+                <Typography variant="h1" sx={heroTitle}>
+                  {stage.title}
+                </Typography>
+              </>
+            ) : (
+              <Typography variant="h1" sx={heroTitle}>
+                {fresh.length} new {language.name} words are waiting.
+              </Typography>
+            )}
             <Box component="p" sx={{ mt: 1.75, mb: 3, maxWidth: "46ch", opacity: 0.9 }}>
-              See each one in real sentences, hear a native speaker, then take a short quiz.
+              Learn {fresh.length} new words in real sentences, hear a native speaker, then take a short quiz.
               {review.length > 0 &&
                 ` ${review.length} word${review.length > 1 ? "s" : ""} you've studied will come back too.`}
             </Box>
-            <ButtonLink href={`/${lang}/session/`}>Start lesson</ButtonLink>
+            <ButtonLink href={`/${lang}/session/`}>
+              {course ? `${lesson > 1 ? "Continue" : "Start"} lesson ${lesson}` : "Start lesson"}
+            </ButtonLink>
           </>
         ) : (
           <>
@@ -119,10 +131,9 @@ export function HomeView({ lang }: HomeViewProps) {
 
       <StatLine
         stats={[
-          {
-            label: "Words studied",
-            value: learned.length,
-          },
+          course
+            ? { label: "Units completed", value: `${unitsDone}/${units.length}` }
+            : { label: "Words studied", value: learned.length },
           { label: "Day streak", value: progress.streak },
           { label: "XP", value: progress.xp },
           { label: "Quiz accuracy", value: answers ? `${Math.round((correct / answers) * 100)}%` : "–" },
@@ -186,7 +197,20 @@ export function HomeView({ lang }: HomeViewProps) {
         </Paper>
       </Box>
 
-      {fresh.length > 0 && (
+      {course && (
+        <Box component="section" sx={{ mt: 5 }}>
+          <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 1.5, mb: 1 }}>
+            <Typography variant="h2">Course</Typography>
+            <TextLink href={`/${lang}/words/`} sx={{ fontSize: 14, color: C.muted }}>
+              All words
+            </TextLink>
+          </Box>
+          <CoursePath index={index} progress={progress} lang={lang} />
+        </Box>
+      )}
+
+      {/* The course list shows the current unit's words instead. */}
+      {fresh.length > 0 && !course && (
         <Box component="section" sx={{ mt: 5 }}>
           <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 1.5, mb: 1.75 }}>
             <Typography variant="h2">Next up</Typography>
@@ -197,37 +221,7 @@ export function HomeView({ lang }: HomeViewProps) {
           <Box component="ul" sx={{ listStyle: "none", p: 0, m: 0, display: "flex", flexWrap: "wrap", gap: 1.25 }}>
             {fresh.map((w) => (
               <li key={w.id}>
-                <Chip
-                  component={NextLink}
-                  href={wordHref(lang, w.id)}
-                  clickable
-                  variant="outlined"
-                  sx={{
-                    borderWidth: 1.5,
-                    minHeight: 44,
-                    "&:hover": { borderColor: C.venice },
-                    "& .MuiChip-label": { px: 2 },
-                  }}
-                  label={
-                    <Box component="span" sx={{ display: "inline-flex", alignItems: "baseline", gap: 1 }}>
-                      <Box component="b" lang={lang} sx={{ color: C.venice, fontSize: 17 }}>
-                        {w.lemma}
-                      </Box>
-                      <Box
-                        component="span"
-                        sx={{
-                          fontSize: 14,
-                          maxWidth: "22ch",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {w.gloss}
-                      </Box>
-                    </Box>
-                  }
-                />
+                <WordChip word={w} lang={lang} />
               </li>
             ))}
           </Box>

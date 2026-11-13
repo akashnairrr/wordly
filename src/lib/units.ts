@@ -57,16 +57,47 @@ export function currentUnit(index: IndexEntry[], p: Progress): Unit | undefined 
 
 /** Where the learner is: the current unit while in the course, the current level after it. */
 export interface Stage {
+  /** "Unit 3" */
+  kicker: string
+  /** "People" */
+  title: string
+  /** "Unit 3 · People" */
   label: string
   words: IndexEntry[]
 }
 
 export function currentStage(index: IndexEntry[], p: Progress): Stage {
   const unit = currentUnit(index, p)
-  if (unit) return { label: unitLabel(unit), words: index.filter((w) => w.unit === unit.n) }
+  if (unit)
+    return {
+      kicker: `Unit ${unit.n}`,
+      title: unit.title,
+      label: unitLabel(unit),
+      words: index.filter((w) => w.unit === unit.n),
+    }
   const level = currentLevel(index, p)
-  return { label: levelLabel(level), words: index.filter((w) => levelOf(w.order).n === level.n) }
+  return {
+    kicker: `Level ${level.n}`,
+    title: level.name,
+    label: levelLabel(level),
+    words: index.filter((w) => levelOf(w.order).n === level.n),
+  }
+}
+
+/** Every unit of the course with its words (teaching order) and how many are studied or skipped. */
+export function courseUnits(index: IndexEntry[], p: Progress): { unit: Unit; words: IndexEntry[]; done: number }[] {
+  const last = index.reduce((n, w) => Math.max(n, w.unit ?? 0), 0)
+  return Array.from({ length: last }, (_, i) => {
+    const words = index.filter((w) => w.unit === i + 1).sort((a, b) => a.order - b.order)
+    return { unit: unitOf(i + 1), words, done: words.filter((w) => done(w, p)).length }
+  })
 }
 
 /** Studied (or skipped) words of the stage. */
 export const stageDone = (s: Stage, p: Progress) => s.words.filter((w) => done(w, p)).length
+
+/** A unit taught `size` words per lesson: how many lessons it takes, and which one is next (1-based). */
+export function lessonsOf(total: number, done: number, size: number): { lesson: number; lessons: number } {
+  const lessons = Math.max(1, Math.ceil(total / size))
+  return { lesson: Math.min(lessons, Math.floor(done / size) + 1), lessons }
+}
