@@ -10,7 +10,7 @@ import { ButtonLink, TextLink } from "@/components/links"
 import { SessionSizePicker } from "@/components/session-size-picker"
 import { StatLine } from "@/components/stat-line"
 import { getLanguage } from "@/lib/languages"
-import { planLesson, reviewQueue } from "@/lib/session"
+import { clampSize, planLesson, reviewQueue, sizeRange } from "@/lib/session"
 import { courseUnits, currentStage, lessonsOf, stageDone } from "@/lib/units"
 import { useIndex } from "@/hooks/use-index"
 import { useProgress } from "@/hooks/use-progress"
@@ -37,7 +37,9 @@ export function HomeView({ lang }: HomeViewProps) {
   const learned = Object.values(progress.learned)
   const answers = learned.reduce((n, w) => n + w.correct + w.wrong, 0)
   const correct = learned.reduce((n, w) => n + w.correct, 0)
-  const size = progress.settings.sessionSize
+  // The lesson-size slider follows the current unit's size; the stored choice is kept and clamped to it.
+  const range = sizeRange(index, progress)
+  const size = clampSize(progress.settings.sessionSize, range)
   const { fresh, review } = planLesson(index, progress, size)
   const studied = reviewQueue(index, progress)
   const weak = reviewQueue(index, progress, true)
@@ -156,6 +158,7 @@ export function HomeView({ lang }: HomeViewProps) {
         <Paper component="section" variant="outlined" sx={{ p: 2.5 }}>
           <SessionSizePicker
             value={size}
+            range={range}
             onChange={(n) => update((p) => ({ ...p, settings: { ...p.settings, sessionSize: n } }))}
           />
         </Paper>

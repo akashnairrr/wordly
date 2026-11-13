@@ -3,6 +3,7 @@ import Chip from "@mui/material/Chip"
 import LinearProgress from "@mui/material/LinearProgress"
 import NextLink from "next/link"
 import type { IndexEntry, Progress } from "@/lib/types"
+import { clampSize, unitRange } from "@/lib/session"
 import { courseUnits, lessonsOf } from "@/lib/units"
 import { wordHref } from "@/lib/words"
 import { C, numSx } from "@/theme"
@@ -54,7 +55,8 @@ export function CoursePath({ index, progress, lang }: CoursePathProps) {
       {units.map(({ unit, words, done }) => {
         const complete = done === words.length
         const isCurrent = unit.n === current
-        const { lesson, lessons } = lessonsOf(words.length, done, progress.settings.sessionSize)
+        const size = clampSize(progress.settings.sessionSize, unitRange(words.length))
+        const { lesson, lessons } = lessonsOf(words.length, done, size)
         return (
           <Box component="li" key={unit.n} sx={{ borderBottom: `1px solid ${C.line}` }}>
             <Box
