@@ -1,4 +1,5 @@
 import type { IndexEntry, Progress } from "./types"
+import { nextStep } from "./units"
 
 export const MIN_SIZE = 5
 export const MAX_SIZE = 15
@@ -67,10 +68,13 @@ export function reviewQueue(index: IndexEntry[], progress: Progress, onlyPractic
 /** Old words mixed into a lesson: 1 per 5 new words (5 → 1, 10 → 2, 15 → 3). */
 export const reviewsPerLesson = (size: number) => Math.ceil(clampSize(size) / 5)
 
-/** A lesson = the next new words plus a few studied words that need another look. */
+/**
+ * A lesson = the next new words plus a few studied words that need another look. In a course, the words are the
+ * current unit's next lesson, and once its lessons are done the unit's final (every word, quiz only) instead.
+ */
 export function planLesson(index: IndexEntry[], progress: Progress, size: number) {
-  return {
-    fresh: pickNewWords(index, progress, size),
-    review: reviewQueue(index, progress).slice(0, reviewsPerLesson(size)),
-  }
+  const step = nextStep(index, progress)
+  if (step?.kind === "final") return { step, fresh: [], review: [] }
+  const fresh = step ? step.words : pickNewWords(index, progress, size)
+  return { step, fresh, review: reviewQueue(index, progress).slice(0, reviewsPerLesson(step ? fresh.length : size)) }
 }

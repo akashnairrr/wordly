@@ -300,7 +300,8 @@ export function buildQuiz(
   words: Word[],
   pool: IndexEntry[],
   lang: Language,
-  opts: { speech: boolean; rng?: Rng }
+  /** `perWord: 1` for long quizzes (a unit final): one question per word instead of two. */
+  opts: { speech: boolean; rng?: Rng; perWord?: 1 | 2 }
 ): QuizQuestion[] {
   const rng = opts.rng ?? Math.random
   const ctx: Ctx = { lang, pool, rng }
@@ -314,7 +315,8 @@ export function buildQuiz(
     const usage = shuffle(SPECIFIC, rng)
       .map((m) => m(w, ctx))
       .find(Boolean)
-    qs.push(first!, (usage ?? other)!)
+    if (opts.perWord === 1) qs.push((rng() < 0.5 ? first : (usage ?? first))!)
+    else qs.push(first!, (usage ?? other)!)
   }
   if (opts.speech && !qs.some((q) => q.kind.startsWith("listen"))) {
     const byId = new Map(words.map((w) => [w.id, w]))

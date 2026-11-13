@@ -11,7 +11,7 @@ import { SessionSizePicker } from "@/components/session-size-picker"
 import { StatLine } from "@/components/stat-line"
 import { getLanguage } from "@/lib/languages"
 import { planLesson, reviewQueue } from "@/lib/session"
-import { courseUnits, currentStage, lessonsOf, stageDone } from "@/lib/units"
+import { courseUnits, currentStage, stageDone } from "@/lib/units"
 import { useIndex } from "@/hooks/use-index"
 import { useProgress } from "@/hooks/use-progress"
 import { C, displayFontSx, numSx, RADIUS } from "@/theme"
@@ -38,15 +38,14 @@ export function HomeView({ lang }: HomeViewProps) {
   const answers = learned.reduce((n, w) => n + w.correct + w.wrong, 0)
   const correct = learned.reduce((n, w) => n + w.correct, 0)
   const size = progress.settings.sessionSize
-  const { fresh, review } = planLesson(index, progress, size)
+  // In a course, `step` is the current unit's next lesson or its final.
+  const { step, fresh, review } = planLesson(index, progress, size)
   const studied = reviewQueue(index, progress)
   const weak = reviewQueue(index, progress, true)
   const stage = currentStage(index, progress)
   const stageWords = { done: stageDone(stage, progress), total: stage.words.length }
-  // Lessons take `size` words at a time, so a unit is a handful of lessons.
-  const { lesson, lessons } = lessonsOf(stageWords.total, stageWords.done, size)
   const units = courseUnits(index, progress)
-  const unitsDone = units.filter((u) => u.done === u.words.length).length
+  const unitsDone = units.filter((u) => u.complete).length
   // Languages with a themed course show units and lessons; the rest still count words by frequency level.
   const course = units.length > 0
   const heroTitle = { fontSize: "clamp(34px, 7vw, 54px)", fontWeight: 800, maxWidth: "14ch" } as const
@@ -79,24 +78,33 @@ export function HomeView({ lang }: HomeViewProps) {
           <Box sx={{ minWidth: 200, flex: "0 1 260px" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, fontSize: 14 }}>
               <Box component="span" sx={{ fontWeight: 600 }}>
-                {course ? `Lesson ${lesson} of ${lessons}` : stage.label}
+                {step
+                  ? step.kind === "final"
+                    ? "Unit final"
+                    : `Lesson ${step.lesson} of ${step.unit.lessons.length}`
+                  : stage.label}
               </Box>
-              {!course && (
+              {!step && (
                 <Box component="span" sx={{ ...numSx, color: C.muted }}>
                   {stageWords.done} studied
                 </Box>
               )}
             </Box>
             <LinearProgress
-              value={course ? ((lesson - 1) / lessons) * 100 : (stageWords.done / Math.max(1, stageWords.total)) * 100}
+              value={
+                // The final is the unit's last step, after its lessons.
+                step
+                  ? (step.unit.lessonsDone / (step.unit.lessons.length + 1)) * 100
+                  : (stageWords.done / Math.max(1, stageWords.total)) * 100
+              }
               aria-label={`${stage.label} progress`}
               sx={{ mt: 0.75, bgcolor: C.surface }}
             />
           </Box>
         </Box>
-        {fresh.length ? (
+        {step || fresh.length ? (
           <>
-            {course ? (
+            {step ? (
               <>
                 <Box component="p" sx={{ m: "8px 0 4px", fontWeight: 700, color: C.venice }}>
                   {stage.kicker}
@@ -111,12 +119,14 @@ export function HomeView({ lang }: HomeViewProps) {
               </Typography>
             )}
             <Box component="p" sx={{ mt: 1.75, mb: 3, maxWidth: "46ch", opacity: 0.9 }}>
-              Learn {fresh.length} new words in real sentences, hear a native speaker, then take a short quiz.
+              {step?.kind === "final"
+                ? `A quiz on all ${step.words.length} words of the unit. Finish it to move on to the next unit.`
+                : `Learn ${fresh.length} new words in real sentences, hear a native speaker, then take a short quiz.`}
               {review.length > 0 &&
                 ` ${review.length} word${review.length > 1 ? "s" : ""} you've studied will come back too.`}
             </Box>
             <ButtonLink href={`/${lang}/session/`}>
-              {course ? `${lesson > 1 ? "Continue" : "Start"} lesson ${lesson}` : "Start lesson"}
+              {step ? (step.kind === "final" ? "Start final" : `Start lesson ${step.lesson}`) : "Start lesson"}
             </ButtonLink>
           </>
         ) : (
@@ -153,12 +163,15 @@ export function HomeView({ lang }: HomeViewProps) {
       )}
 
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 2, mt: 3 }}>
-        <Paper component="section" variant="outlined" sx={{ p: 2.5 }}>
-          <SessionSizePicker
-            value={size}
-            onChange={(n) => update((p) => ({ ...p, settings: { ...p.settings, sessionSize: n } }))}
-          />
-        </Paper>
+        {/* Course units come in fixed lessons; the size only applies to lessons by frequency. */}
+        {!step && (
+          <Paper component="section" variant="outlined" sx={{ p: 2.5 }}>
+            <SessionSizePicker
+              value={size}
+              onChange={(n) => update((p) => ({ ...p, settings: { ...p.settings, sessionSize: n } }))}
+            />
+          </Paper>
+        )}
 
         <Paper
           component="section"

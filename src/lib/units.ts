@@ -49,11 +49,60 @@ export const unitLabel = (u: Unit) => `Unit ${u.n} · ${u.title}`
 
 const done = (w: IndexEntry, p: Progress) => !!p.learned[w.id] || !!p.skipped[w.id]
 
-/** The unit of the next word to learn; undefined once the curriculum is finished (frequency list from there). */
-export function currentUnit(index: IndexEntry[], p: Progress): Unit | undefined {
-  const next = index.filter((w) => !done(w, p)).sort((a, b) => a.order - b.order)[0]
-  return next?.unit ? unitOf(next.unit) : undefined
+/** A unit is taught in 2 lessons, or 3 when 2 would run past this many words each. */
+const LESSON_WORDS = 6
+
+/** A unit's words, in teaching order, as 2–3 lessons of near-equal size. */
+export function splitLessons(words: IndexEntry[]): IndexEntry[][] {
+  const n = Math.min(3, Math.max(2, Math.ceil(words.length / LESSON_WORDS)))
+  return Array.from({ length: n }, (_, i) =>
+    words.slice(Math.round((i * words.length) / n), Math.round(((i + 1) * words.length) / n))
+  ).filter((l) => l.length)
 }
+
+export interface CourseUnit {
+  unit: Unit
+  /** Teaching order. */
+  words: IndexEntry[]
+  lessons: IndexEntry[][]
+  /** Lessons whose words are all studied (or skipped). */
+  lessonsDone: number
+  /** The unit's final quiz is taken (or there's nothing left to quiz). */
+  complete: boolean
+}
+
+/** Every unit of the course, with its lessons and how far the learner is. Empty for languages without a course. */
+export function courseUnits(index: IndexEntry[], p: Progress): CourseUnit[] {
+  const last = index.reduce((n, w) => Math.max(n, w.unit ?? 0), 0)
+  return Array.from({ length: last }, (_, i) => {
+    const words = index.filter((w) => w.unit === i + 1).sort((a, b) => a.order - b.order)
+    const lessons = splitLessons(words)
+    return {
+      unit: unitOf(i + 1),
+      words,
+      lessons,
+      lessonsDone: lessons.filter((l) => l.every((w) => done(w, p))).length,
+      complete: !!p.unitsDone[i + 1] || words.every((w) => p.skipped[w.id]),
+    }
+  })
+}
+
+/** What the course asks for next: the first unfinished lesson of the current unit, else that unit's final. */
+export type Step =
+  | { kind: "lesson"; unit: CourseUnit; /** 1-based. */ lesson: number; words: IndexEntry[] }
+  | { kind: "final"; unit: CourseUnit; words: IndexEntry[] }
+
+/** Undefined once every unit is complete, or for languages without a course: lessons go by frequency then. */
+export function nextStep(index: IndexEntry[], p: Progress): Step | undefined {
+  const unit = courseUnits(index, p).find((u) => !u.complete)
+  if (!unit) return undefined
+  const k = unit.lessons.findIndex((l) => l.some((w) => !done(w, p)))
+  if (k >= 0) return { kind: "lesson", unit, lesson: k + 1, words: unit.lessons[k]!.filter((w) => !done(w, p)) }
+  return { kind: "final", unit, words: unit.words.filter((w) => !p.skipped[w.id]) }
+}
+
+/** The unit being worked on: the first whose final isn't taken. Undefined past the course. */
+export const currentUnit = (index: IndexEntry[], p: Progress): Unit | undefined => nextStep(index, p)?.unit.unit
 
 /** Where the learner is: the current unit while in the course, the current level after it. */
 export interface Stage {
@@ -84,20 +133,5 @@ export function currentStage(index: IndexEntry[], p: Progress): Stage {
   }
 }
 
-/** Every unit of the course with its words (teaching order) and how many are studied or skipped. */
-export function courseUnits(index: IndexEntry[], p: Progress): { unit: Unit; words: IndexEntry[]; done: number }[] {
-  const last = index.reduce((n, w) => Math.max(n, w.unit ?? 0), 0)
-  return Array.from({ length: last }, (_, i) => {
-    const words = index.filter((w) => w.unit === i + 1).sort((a, b) => a.order - b.order)
-    return { unit: unitOf(i + 1), words, done: words.filter((w) => done(w, p)).length }
-  })
-}
-
 /** Studied (or skipped) words of the stage. */
 export const stageDone = (s: Stage, p: Progress) => s.words.filter((w) => done(w, p)).length
-
-/** A unit taught `size` words per lesson: how many lessons it takes, and which one is next (1-based). */
-export function lessonsOf(total: number, done: number, size: number): { lesson: number; lessons: number } {
-  const lessons = Math.max(1, Math.ceil(total / size))
-  return { lesson: Math.min(lessons, Math.floor(done / size) + 1), lessons }
-}

@@ -22,12 +22,12 @@ import { ToneChip } from "@/components/tone-chip"
 import { WordCard } from "@/components/word-card"
 import { fetchWord } from "@/lib/data"
 import { getLanguage } from "@/lib/languages"
-import { recordSession, skipWord } from "@/lib/progress"
+import { completeUnit, recordSession, skipWord } from "@/lib/progress"
 import { buildQuiz, type QuizQuestion, type QuizResult, type QuizSummary, summarize } from "@/lib/quiz"
 import { playSfx } from "@/lib/sfx"
 import { pickNewWords, planLesson, reviewQueue } from "@/lib/session"
 import type { Word } from "@/lib/types"
-import { currentStage, type Stage, stageDone } from "@/lib/units"
+import { currentStage, type Stage, stageDone, type Unit, unitLabel } from "@/lib/units"
 import { wordHref } from "@/lib/words"
 import { useIndex } from "@/hooks/use-index"
 import { useProgress } from "@/hooks/use-progress"
@@ -69,6 +69,8 @@ interface Outcome {
   streak: number
   streakUp: boolean
   stage: Stage
+  /** Set when this was a unit's final: the unit it completed. */
+  finished?: Unit
   /** Unit (or level) words studied before and after this session, out of `total`. */
   before: number
   after: number
@@ -149,6 +151,8 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
   const [error, setError] = useState<string | null>(null)
   const [phase, setPhase] = useState<Phase>({ name: "learn", card: 0 })
   const [notice, setNotice] = useState<string | null>(null)
+  // A unit's final: every word of the unit, straight to the quiz.
+  const [final, setFinal] = useState<Unit | null>(null)
   const started = useRef(false)
 
   // Pick the words once; recording results updates progress and must not reshuffle them.
@@ -157,19 +161,27 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
     started.current = true
     const size = progress.settings.sessionSize
     let picks: { id: string; review: boolean }[]
+    let unit: Unit | null = null
     if (mode === "review") {
       picks = reviewQueue(index, progress, onlyPractice)
         .slice(0, size)
         .map((w) => ({ id: w.id, review: true }))
     } else {
       const plan = planLesson(index, progress, size)
-      picks = [
-        ...plan.fresh.map((w) => ({ id: w.id, review: false })),
-        ...plan.review.map((w) => ({ id: w.id, review: true })),
-      ]
+      picks =
+        plan.step?.kind === "final"
+          ? plan.step.words.map((w) => ({ id: w.id, review: true }))
+          : [
+              ...plan.fresh.map((w) => ({ id: w.id, review: false })),
+              ...plan.review.map((w) => ({ id: w.id, review: true })),
+            ]
+      if (plan.step?.kind === "final") unit = plan.step.unit.unit
     }
     Promise.all(picks.map(async (p) => ({ word: await fetchWord(lang, p.id), review: p.review }))).then(
-      setItems,
+      (loaded) => {
+        setFinal(unit)
+        setItems(loaded)
+      },
       (e: Error) => setError(e.message)
     )
   }, [progress, index, lang, mode, onlyPractice])
@@ -197,7 +209,36 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
       </EmptyState>
     )
 
-  const title = mode === "review" ? (onlyPractice ? "Practice weak words" : "Review") : "Lesson"
+  const title = final ? "Unit final" : mode === "review" ? (onlyPractice ? "Practice weak words" : "Review") : "Lesson"
+
+  // A final skips the word cards: a short intro, then the quiz on every word of the unit.
+  if (final && phase.name === "learn")
+    return (
+      <EmptyState
+        title={
+          <Typography variant="h1" sx={{ fontSize: 32, mb: 1.5 }}>
+            {unitLabel(final)}: final
+          </Typography>
+        }
+        text={`One question on each of the unit's ${items.length} words. Finish it to complete the unit.`}
+      >
+        <Button
+          onClick={() =>
+            setPhase({
+              name: "quiz",
+              questions: buildQuiz(
+                items.map((i) => i.word),
+                index,
+                language,
+                { speech: available === true, perWord: 1 }
+              ),
+            })
+          }
+        >
+          Start final
+        </Button>
+      </EmptyState>
+    )
 
   if (phase.name === "learn") {
     const card = Math.min(phase.card, items.length - 1)
@@ -212,8 +253,9 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
     const skip = async () => {
       const skipped = item.word
       let replacement: Item | undefined
-      if (!item.review) {
-        // Skipped new words never come back as new; pull in the next word so the lesson keeps its size.
+      if (!item.review && !item.word.unit) {
+        // Skipped new words never come back as new; pull in the next word so the lesson keeps its size. Course
+        // lessons are fixed sets of words: they just get shorter.
         update((p) => skipWord(p, skipped.id))
         const next = pickNewWords(index!, skipWord(progress!, skipped.id), 1, new Set(items!.map((i) => i.word.id)))[0]
         // Replacement failed to load: carry on one word shorter rather than leave the skipped word on screen.
@@ -309,7 +351,10 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
       (id) => progress.history.filter((h) => h.words.includes(id)).length
     )
     const now = new Date()
-    const record = (p: typeof progress) => recordSession(p, summary.progress, mode, now, summary.xp)
+    const record = (p: typeof progress) => {
+      const recorded = recordSession(p, summary.progress, final ? "review" : mode, now, summary.xp)
+      return final ? completeUnit(recorded, final.n, now) : recorded
+    }
     const after = record(progress)
     const stage = currentStage(index, progress)
     update(record)
@@ -321,6 +366,7 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
         streak: after.streak,
         streakUp: after.streak > progress.streak,
         stage,
+        ...(final && { finished: final }),
         before: stageDone(stage, progress),
         after: stageDone(stage, after),
         total: stage.words.length,
@@ -358,7 +404,7 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
     )
   }
 
-  const { summary, streak, streakUp, stage, before, after, total } = phase.outcome
+  const { summary, streak, streakUp, stage, finished, before, after, total } = phase.outcome
   const missed = items.filter((i) => summary.missed.includes(i.word.id))
   const perfect = summary.score === summary.total
   return (
@@ -378,7 +424,7 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
       >
         <Confetti />
         <Box component="span" sx={{ fontSize: 14, fontWeight: 600 }}>
-          {title} complete
+          {finished ? `${unitLabel(finished)} complete` : `${title} complete`}
         </Box>
         <Box sx={{ ...displayFontSx, ...numSx, fontSize: 72, lineHeight: 1, my: 1 }}>
           +<CountUp to={summary.xp} /> XP
@@ -416,7 +462,7 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
           },
         ]}
       />
-      {total > 0 && (
+      {total > 0 && !finished && (
         <Box sx={{ mt: 2.5 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1, fontSize: 14 }}>
             <Box component="span" sx={{ fontWeight: 600 }}>
@@ -454,7 +500,7 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
                   </Box>
                 </span>
                 <Box component="span" sx={{ display: "flex", gap: 1.25 }}>
-                  {review && <ToneChip label="review" />}
+                  {review && !finished && <ToneChip label="review" />}
                   <ToneChip tone={wrong ? "practice" : "studied"} label={wrong ? `${wrong} missed` : "✓"} />
                 </Box>
               </ListItemButton>
@@ -480,7 +526,7 @@ function Session({ lang, mode, onlyPractice, onRestart }: SessionProps) {
           variant={mode === "lesson" ? "contained" : "outlined"}
           onClick={onRestart}
         >
-          Next lesson
+          {finished ? "Next unit" : "Next lesson"}
         </ButtonLink>
       </Box>
     </>

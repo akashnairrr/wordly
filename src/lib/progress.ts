@@ -11,6 +11,7 @@ export function emptyProgress(): Progress {
     settings: { sessionSize: MIN_SIZE, pageSize: 100, rate: RATES.normal, sound: true },
     learned: {},
     skipped: {},
+    unitsDone: {},
     history: [],
     streak: 0,
     xp: 0,
@@ -88,6 +89,11 @@ export function recordSession(
     lastDay: today,
     history: [{ date: now.toISOString(), words, score, total: results.length, kind }, ...p.history],
   }
+}
+
+/** The unit's final quiz is done: the course moves on to the next unit. */
+export function completeUnit(p: Progress, unit: number, now = new Date()): Progress {
+  return { ...p, unitsDone: { ...p.unitsDone, [unit]: now.toISOString() } }
 }
 
 export function skipWord(p: Progress, id: string, now = new Date()): Progress {

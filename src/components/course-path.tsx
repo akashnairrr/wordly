@@ -3,7 +3,7 @@ import Chip from "@mui/material/Chip"
 import LinearProgress from "@mui/material/LinearProgress"
 import NextLink from "next/link"
 import type { IndexEntry, Progress } from "@/lib/types"
-import { courseUnits, lessonsOf } from "@/lib/units"
+import { courseUnits } from "@/lib/units"
 import { wordHref } from "@/lib/words"
 import { C, numSx } from "@/theme"
 
@@ -48,13 +48,13 @@ interface CoursePathProps {
 /** Every unit of the course, in order: done, current (open) and upcoming, each expanding to its words. */
 export function CoursePath({ index, progress, lang }: CoursePathProps) {
   const units = courseUnits(index, progress)
-  const current = units.find((u) => u.done < u.words.length)?.unit.n
+  const current = units.find((u) => !u.complete)?.unit.n
   return (
     <Box component="ol" sx={{ listStyle: "none", p: 0, m: 0 }}>
-      {units.map(({ unit, words, done }) => {
-        const complete = done === words.length
+      {units.map(({ unit, lessons, lessonsDone, complete }) => {
         const isCurrent = unit.n === current
-        const { lesson, lessons } = lessonsOf(words.length, done, progress.settings.sessionSize)
+        // Steps: each lesson, then the final.
+        const steps = lessons.length + 1
         return (
           <Box component="li" key={unit.n} sx={{ borderBottom: `1px solid ${C.line}` }}>
             <Box
@@ -116,13 +116,15 @@ export function CoursePath({ index, progress, lang }: CoursePathProps) {
                       {complete
                         ? "Done"
                         : isCurrent
-                          ? `Lesson ${lesson} of ${lessons}`
-                          : `${lessons} lesson${lessons > 1 ? "s" : ""}`}
+                          ? lessonsDone === lessons.length
+                            ? "Final"
+                            : `Lesson ${lessonsDone + 1} of ${lessons.length}`
+                          : `${lessons.length} lessons + final`}
                     </Box>
                   </Box>
-                  {isCurrent && lesson > 1 && (
+                  {isCurrent && lessonsDone > 0 && (
                     <LinearProgress
-                      value={((lesson - 1) / lessons) * 100}
+                      value={(lessonsDone / steps) * 100}
                       aria-label={`${unit.title} progress`}
                       sx={{ mt: 0.75, bgcolor: C.surface }}
                     />
@@ -137,24 +139,28 @@ export function CoursePath({ index, progress, lang }: CoursePathProps) {
                   ›
                 </Box>
               </Box>
-              <Box
-                component="ul"
-                sx={{
-                  listStyle: "none",
-                  p: 0,
-                  m: 0,
-                  pb: 2,
-                  pl: { sm: "52px" },
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 1,
-                }}
-              >
-                {words.map((w) => (
-                  <li key={w.id}>
-                    <WordChip word={w} lang={lang} studied={!!progress.learned[w.id]} />
-                  </li>
+              <Box component="ol" sx={{ listStyle: "none", p: 0, m: 0, pb: 2, pl: { sm: "52px" } }}>
+                {lessons.map((words, k) => (
+                  <Box component="li" key={k} sx={{ mb: 1.5 }}>
+                    <Box sx={{ fontSize: 13, fontWeight: 600, color: C.muted, mb: 0.75 }}>
+                      Lesson {k + 1}
+                      {k < lessonsDone && " ✓"}
+                    </Box>
+                    <Box
+                      component="ul"
+                      sx={{ listStyle: "none", p: 0, m: 0, display: "flex", flexWrap: "wrap", gap: 1 }}
+                    >
+                      {words.map((w) => (
+                        <li key={w.id}>
+                          <WordChip word={w} lang={lang} studied={!!progress.learned[w.id]} />
+                        </li>
+                      ))}
+                    </Box>
+                  </Box>
                 ))}
+                <Box component="li" sx={{ fontSize: 13, fontWeight: 600, color: C.muted }}>
+                  Final: a quiz on the whole unit{complete && " ✓"}
+                </Box>
               </Box>
             </Box>
           </Box>

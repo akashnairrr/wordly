@@ -109,6 +109,8 @@ export interface Progress {
   learned: Record<string, WordProgress>
   /** Words the learner chose to skip (id → when). Never offered as new words; can be un-skipped. */
   skipped: Record<string, string>
+  /** Course units whose final quiz is taken (unit number → when). */
+  unitsDone: Record<string, string>
   history: { date: string; words: string[]; score: number; total: number; kind?: "lesson" | "review" }[]
   streak: number
   /** Points earned in quizzes, all time. */
